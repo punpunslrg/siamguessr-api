@@ -1,14 +1,231 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+// -----------------------------------------------------
+// ENUMS
+// -----------------------------------------------------
+
+enum Role {
+  user
+  admin
+}
+
+enum UserStatus {
+  pending
+  active
+  banned
+}
+
+enum AuthProvider {
+  local 
+  google
+  facebook
+}
+
+enum RoomMode {
+  single
+  multi
+}
+
+enum RoomStatus {
+  waiting
+  playing
+  finished
+}
+
+enum PlayerStatus {
+  ready
+  playing
+  left
+}
+
+enum FriendStatus {
+  pending
+  accepted
+  declined
+  blocked
+}
+
+// -----------------------------------------------------
+// MODELS
+// -----------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String? 
+  name      String?
+  image     String?
+  role      Role     @default(user)
+  status    UserStatus @default(pending)
+  provider  String  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // --- Relations ---
+  hostedRooms              Room[]                     @relation("Host")
+  roomPlayers              RoomPlayer[]
+  guesses                  Guess[]
+  leaderboard              Leaderboard?
+  bestScores               BestGameScore[]
+  sentFriendRequests       Friend[]                   @relation("SentRequests")
+  receivedFriendRequests   Friend[]                   @relation("ReceivedRequests")
+  subscription             Subscription?
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+}
+
+model Room {
+  id         String     @id @default(cuid())
+  name       String
+  mode       RoomMode   @default(single)
+  status     RoomStatus @default(waiting)
+  maxPlayers Int        @default(1)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  // --- Relations ---
+  hostId         String
+  host           User            @relation("Host", fields: [hostId], references: [id], onDelete: Cascade)
+  players        RoomPlayer[]
+  rounds         Round[]
+  bestGameScores BestGameScore[]
+}
+
+model RoomPlayer {
+  score    Int          @default(0)
+  isHost   Boolean      @default(false)
+  status   PlayerStatus @default(playing)
+  joinedAt DateTime     @default(now())
+
+  // --- Relations ---
+  roomId String
+  userId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([roomId, userId])
+}
+
+model Round {
+  id           String    @id @default(cuid())
+  roundNumber  Int
+  locationLat  Decimal   @db.Decimal(10, 7)
+  locationLng  Decimal   @db.Decimal(10, 7)
+  createdAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  // --- Relations ---
+  roomId  String
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  guesses Guess[]
+}
+
+model Guess {
+  id          String   @id @default(cuid())
+  guessedLat  Decimal  @db.Decimal(10, 7)
+  guessedLng  Decimal  @db.Decimal(10, 7)
+  distance    Float? // in kilometers
+  score       Int      @default(0)
+  guessedAt   DateTime @default(now())
+
+  // --- Relations ---
+  roundId String
+  userId  String
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Leaderboard {
+  id            Int      @id @default(autoincrement())
+  averageTop5   Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  // --- Relations ---
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BestGameScore {
+  id       Int      @id @default(autoincrement())
+  score    Int
+  playedAt DateTime @default(now())
+
+  // --- Relations ---
+  roomId String
+  userId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Friend {
+  status     FriendStatus
+  createdAt  DateTime  @default(now())
+  responseAt DateTime?
+
+  // --- Relations ---
+  requesterId String
+  receiverId  String
+  requester   User   @relation("SentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  receiver    User   @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@id([requesterId, receiverId])
+}
+
+// -----------------------------------------------------
+// Optional: Subscription & Chat Models
+// -----------------------------------------------------
+
+model Subscription {
+  id                   Int       @id @default(autoincrement())
+  plan                 String // e.g., "premium", "pro"
+  stripeSubscriptionId String    @unique
+  status               String // e.g., "active", "canceled"
+  startedAt            DateTime
+  expiresAt            DateTime
+  updatedAt            DateTime  @updatedAt
+
+  // --- Relations ---
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  isGroup   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  // --- Relations ---
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  joinedAt DateTime @default(now())
+
+  // --- Relations ---
+  conversationId String
+  userId         String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  // --- Relations ---
+  conversationId String
+  senderId       String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
