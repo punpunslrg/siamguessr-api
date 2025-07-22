@@ -9,5 +9,4 @@ userRoute.post("/me", (req, res, next) => {
   res.status(200).json({ mesaage: "put me path" });
 });
 
-
 export default userRoute;
