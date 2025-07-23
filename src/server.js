@@ -4,6 +4,10 @@ import morgan from "morgan";
 import cors from "cors";
 import errorMiddleware from "./middlewares/error.middleware.js";
 import notFoundMiddleware from "./middlewares/not-found.middleware.js";
+import authRoute from "./routes/auth.route.js";
+import userRoute from "./routes/user.route.js";
+import friendRoute from "./routes/friend.route.js";
+import roomRoute from "./routes/room.route.js";
 
 dotenv.config();
 
@@ -17,6 +21,11 @@ app.use(
     origin: ["http://localhost:5173", "http://localhost:5174"],
   })
 );
+
+app.use("/api/auth", authRoute);
+app.use("/api/users", userRoute);
+app.use("/api/friends", friendRoute);
+app.use("/api/rooms", roomRoute);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
