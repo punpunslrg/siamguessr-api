@@ -1,0 +1,47 @@
+[
+  {
+    "name": "The Grand Palace, Bangkok",
+    "lat": 13.7514,
+    "lng": 100.4923
+  },
+  {
+    "name": "Wat Arun, Bangkok",
+    "lat": 13.7437,
+    "lng": 100.4889
+  },
+  {
+    "name": "Doi Suthep, Chiang Mai",
+    "lat": 18.8050,
+    "lng": 98.9216
+  },
+  {
+    "name": "Old City Moat, Chiang Mai",
+    "lat": 18.7877,
+    "lng": 98.9931
+  },
+  {
+    "name": "Ayutthaya Historical Park",
+    "lat": 14.3557,
+    "lng": 100.5623
+  },
+  {
+    "name": "Sukhothai Historical Park",
+    "lat": 17.0175,
+    "lng": 99.7042
+  },
+  {
+    "name": "Patong Beach, Phuket",
+    "lat": 7.8973,
+    "lng": 98.2952
+  },
+  {
+    "name": "Big Buddha, Phuket",
+    "lat": 7.8277,
+    "lng": 98.3129
+  },
+  {
+    "name": "Railay Beach, Krabi",
+    "lat": 8.0125,
+    "lng": 98.8384
+  }
+]
