@@ -8,6 +8,7 @@ import authRoute from "./routes/auth.route.js";
 import userRoute from "./routes/user.route.js";
 import friendRoute from "./routes/friend.route.js";
 import roomRoute from "./routes/room.route.js";
+import gameRoute from "./routes/game.route.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/friends", friendRoute);
 app.use("/api/rooms", roomRoute);
+app.use("/api/game", gameRoute);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
