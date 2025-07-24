@@ -83,7 +83,7 @@ model User {
 
 model Room {
   id         String     @id @default(cuid())
-  name       String
+  code       String
   mode       RoomMode   @default(single)
   status     RoomStatus @default(waiting)
   maxPlayers Int        @default(1)
