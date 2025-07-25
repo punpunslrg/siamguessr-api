@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { findRandomLocationFromGoogle } from './google-map.service.js';
+import { findRandomLocation } from './google-map.service.js';
 
 // --- Function to get a location from the mock file ---
 function getMockLocation() {
@@ -22,6 +22,6 @@ export async function getRandomLocation() {
   if (process.env.NODE_ENV === 'development') {
     return getMockLocation();
   } else {
-    return findRandomLocationFromGoogle();
+    return findRandomLocation();
   }
 }

@@ -1,57 +1,30 @@
-import axios from "axios";
-import createError from "../utils/create-error.util.js";
+// You no longer need the THAILAND_BOUNDS
+// const THAILAND_BOUNDS = { ... };
 
-const THAILAND_BOUNDS = {
-  south: 5.6,
-  west: 97.3,
-  north: 20.5,
-  east: 105.6,
-};
+// 1. Create your curated list of high-quality, verified locations.
+// This should eventually be in a database, but an array is fine for now.
+const curatedLocations = [
+  { "name": "Victory Monument, Bangkok", "lat": 13.7651, "lng": 100.5386 },
+  { "name": "Siam Paragon, Bangkok", "lat": 13.7462, "lng": 100.5348 },
+  { "name": "Wat Phra That Doi Suthep, Chiang Mai", "lat": 18.8044, "lng": 98.9208 },
+  { "name": "Ayutthaya Historical Park", "lat": 14.3567, "lng": 100.5684 },
+  { "name": "Patong Beach, Phuket", "lat": 7.8973, "lng": 98.2965 },
+  { "name": "The White Temple, Chiang Rai", "lat": 19.8245, "lng": 99.7628 },
+  // ...add hundreds or thousands more locations here
+];
 
-export async function findRandomLocationFromGoogle() {
-  const MAX_ATTEMPTS = 20;
-  for (let i = 0; i < MAX_ATTEMPTS; i++) {
-    try {
-      // 1. Generate random coordinates within Thailand
-      const lat =
-        Math.random() * (THAILAND_BOUNDS.north - THAILAND_BOUNDS.south) +
-        THAILAND_BOUNDS.south;
-      const lng =
-        Math.random() * (THAILAND_BOUNDS.east - THAILAND_BOUNDS.west) +
-        THAILAND_BOUNDS.west;
+export async function findRandomLocation() {
+  // 2. Select a random location directly from your curated list.
+  const randomIndex = Math.floor(Math.random() * curatedLocations.length);
+  const randomLocation = curatedLocations[randomIndex];
 
-      // 2. Call the Google Street View API's metadata endpoint
-      const response = await axios.get(
-        "https://maps.googleapis.com/maps/api/streetview/metadata",
-        {
-          params: {
-            location: `${lat},${lng}`,
-            key: process.env.Maps_API_KEY,
-            source: "outdoor",
-          },
-        }
-      );
+  console.log(`Serving curated location: ${randomLocation.name}`);
 
-      // 3. Check if the API returned a valid location
-      if (response.data.status === "OK") {
-        console.log(`Attempt ${i + 1}: Found valid location!`);
-        return {
-          lat: response.data.location.lat,
-          lng: response.data.location.lng,
-        };
-      }
-    } catch (error) {
-      console.error(
-        "Error fetching Street View metadata:",
-        error.response.data.error_message
-      );
-    }
-  }
-
-  // If no location is found after all attempts
-  // throw new Error(
-  //   "Could not find a valid Street View location in Thailand after multiple attempts."
-  // );
-
-  createError(400, "Could not find a valid Street View location in Thailand after multiple attempts.")
+  // 3. Return the location. It's guaranteed to be valid.
+  // No API calls, no loops, no errors.
+  return {
+    name: randomLocation.name,
+    lat: randomLocation.lat,
+    lng: randomLocation.lng,
+  };
 }
