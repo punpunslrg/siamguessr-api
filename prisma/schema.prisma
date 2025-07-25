@@ -64,7 +64,7 @@ model User {
   image     String?
   role      Role     @default(user)
   status    UserStatus @default(pending)
-  provider  String  
+  provider  String?  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

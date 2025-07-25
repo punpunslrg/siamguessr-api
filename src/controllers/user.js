@@ -67,8 +67,8 @@ export const loginUser = async (req, res, next) => {
         email: email,
       }
     })
-    console.log(email)
-    if (!email) {
+    console.log(user)
+    if (!user) {
       createError(400, "Email or Password is Invalid!!!")
     }
 
@@ -88,7 +88,7 @@ export const loginUser = async (req, res, next) => {
     const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "1d" });
 
     res.json({
-      message: `Welcome back ${user.username}`,
+      message: `Welcome back ${user.name}`,
       name: name,
       payload: payload,
       token: token,
