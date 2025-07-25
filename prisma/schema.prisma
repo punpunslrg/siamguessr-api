@@ -23,7 +23,7 @@ enum UserStatus {
 }
 
 enum AuthProvider {
-  local 
+  local
   google
   facebook
 }
@@ -41,6 +41,7 @@ enum RoomStatus {
 
 enum PlayerStatus {
   ready
+  waiting
   playing
   left
 }
@@ -52,57 +53,95 @@ enum FriendStatus {
   blocked
 }
 
+enum Difficulty {
+  classic
+  challenge
+}
+
+// optional
+
+enum SubscriptionPlan {
+  free
+  basic
+  pro
+  elite
+}
+
+enum SubscriptionStatus {
+  active
+  cancel
+}
+
 // -----------------------------------------------------
 // MODELS
 // -----------------------------------------------------
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String? 
-  name      String?
+  id        String       @id @default(cuid())
+  email     String       @unique
+  password  String?
+  username  String?
   image     String?
-  role      Role     @default(user)
-  status    UserStatus @default(pending)
-  provider  String?  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      Role         @default(user)
+  status    UserStatus   @default(pending)
+  provider  AuthProvider @default(local)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   // --- Relations ---
-  hostedRooms              Room[]                     @relation("Host")
+  hostedRooms              Room[]                    @relation("Host")
   roomPlayers              RoomPlayer[]
   guesses                  Guess[]
   leaderboard              Leaderboard?
-  bestScores               BestGameScore[]
-  sentFriendRequests       Friend[]                   @relation("SentRequests")
-  receivedFriendRequests   Friend[]                   @relation("ReceivedRequests")
+  gameScoreHistory         GameScoreHistory[]
+  sentFriendRequests       Friend[]                  @relation("SentRequests")
+  receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
   subscription             Subscription?
   conversationParticipants ConversationParticipant[]
   messages                 Message[]
+
+  // --- ADD THIS RELATION ---
+  winRate WinRate?
+}
+
+// --- ADD THIS NEW MODEL ---
+model WinRate {
+  id            String   @id @default(cuid())
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  draws         Int      @default(0)
+  gamesPlayed   Int      @default(0)
+  winPercentage Float    @default(0.0)
+  lastUpdated   DateTime @updatedAt
+
+  // --- Relations ---
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Room {
   id         String     @id @default(cuid())
-  code       String
+  code       String?
   mode       RoomMode   @default(single)
+  difficulty Difficulty
   status     RoomStatus @default(waiting)
   maxPlayers Int        @default(1)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
   // --- Relations ---
-  hostId         String
-  host           User            @relation("Host", fields: [hostId], references: [id], onDelete: Cascade)
-  players        RoomPlayer[]
-  rounds         Round[]
-  bestGameScores BestGameScore[]
+  hostId           String
+  host             User               @relation("Host", fields: [hostId], references: [id], onDelete: Cascade)
+  players          RoomPlayer[]
+  rounds           Round[]
+  gameScoreHistory GameScoreHistory[]
 }
 
 model RoomPlayer {
-  score    Int          @default(0)
-  isHost   Boolean      @default(false)
-  status   PlayerStatus @default(playing)
-  joinedAt DateTime     @default(now())
+  totalScore Int          @default(0)
+  isHost     Boolean      @default(false)
+  status     PlayerStatus @default(playing)
+  joinedAt   DateTime     @default(now())
 
   // --- Relations ---
   roomId String
@@ -114,12 +153,12 @@ model RoomPlayer {
 }
 
 model Round {
-  id           String    @id @default(cuid())
-  roundNumber  Int
-  locationLat  Decimal   @db.Decimal(10, 7)
-  locationLng  Decimal   @db.Decimal(10, 7)
-  createdAt    DateTime  @default(now())
-  endedAt      DateTime?
+  id          String    @id @default(cuid())
+  roundNumber Int
+  locationLat Decimal   @db.Decimal(10, 7)
+  locationLng Decimal   @db.Decimal(10, 7)
+  createdAt   DateTime  @default(now())
+  endedAt     DateTime?
 
   // --- Relations ---
   roomId  String
@@ -128,12 +167,12 @@ model Round {
 }
 
 model Guess {
-  id          String   @id @default(cuid())
-  guessedLat  Decimal  @db.Decimal(10, 7)
-  guessedLng  Decimal  @db.Decimal(10, 7)
-  distance    Float? // in kilometers
-  score       Int      @default(0)
-  guessedAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  guessedLat Decimal  @db.Decimal(10, 7)
+  guessedLng Decimal  @db.Decimal(10, 7)
+  distance   Float? // in kilometers
+  score      Int      @default(0)
+  guessedAt  DateTime @default(now())
 
   // --- Relations ---
   roundId String
@@ -143,16 +182,17 @@ model Guess {
 }
 
 model Leaderboard {
-  id            Int      @id @default(autoincrement())
-  averageTop5   Int      @default(0)
-  updatedAt     DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  totalGames  Int      @default(0)
+  averageTop5 Int      @default(0)
+  updatedAt   DateTime @updatedAt
 
   // --- Relations ---
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model BestGameScore {
+model GameScoreHistory {
   id       Int      @id @default(autoincrement())
   score    Int
   playedAt DateTime @default(now())
@@ -166,7 +206,7 @@ model BestGameScore {
 
 model Friend {
   status     FriendStatus
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime     @default(now())
   responseAt DateTime?
 
   // --- Relations ---
@@ -183,13 +223,13 @@ model Friend {
 // -----------------------------------------------------
 
 model Subscription {
-  id                   Int       @id @default(autoincrement())
-  plan                 String // e.g., "premium", "pro"
-  stripeSubscriptionId String    @unique
+  id                   Int              @id @default(autoincrement())
+  subscriptionPlan     SubscriptionPlan @default(free)
+  stripeSubscriptionId String           @unique
   status               String // e.g., "active", "canceled"
   startedAt            DateTime
   expiresAt            DateTime
-  updatedAt            DateTime  @updatedAt
+  updatedAt            DateTime         @updatedAt
 
   // --- Relations ---
   userId String @unique
@@ -197,9 +237,9 @@ model Subscription {
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  isGroup   Boolean   @default(false)
-  createdAt DateTime  @default(now())
+  id        String   @id @default(cuid())
+  isGroup   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   // --- Relations ---
   participants ConversationParticipant[]
