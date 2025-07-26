@@ -1,4 +1,7 @@
-[
+import prisma from "../src/config/prisma.config.js";
+
+// The location data you provided
+const locationsData = [
   {
     "name": "Democracy Monument, Bangkok",
     "lat": 13.7569,
@@ -64,4 +67,34 @@
     "lat": 20.352,
     "lng": 100.0805
   }
-]
+];
+
+async function main() {
+  console.log(`Start seeding ...`);
+
+  // Format the data to match the Prisma schema
+  const formattedLocations = locationsData.map(location => ({
+    lat: location.lat,
+    lng: location.lng,
+    description: location.name,
+    countryCode: 'TH', 
+    isVerified: true,
+  }));
+
+  // Use createMany for efficient bulk insertion
+  const result = await prisma.curatedLocation.createMany({
+    data: formattedLocations,
+    skipDuplicates: true, // Optional: useful if you run the seed multiple times
+  });
+
+  console.log(`Seeding finished. Added ${result.count} locations.`);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

@@ -1,5 +1,6 @@
 import express from "express";
 import * as roomController from "../controllers/room.controller.js";
+import { authCheck } from "../middlewares/auth.middleware.js";
 const roomRoute = express.Router();
 
 // Fetches a list of all public, joinable rooms for the lobby.
@@ -8,7 +9,7 @@ roomRoute.get("/", (req, res, next) => {
 });
 
 // Creates a new game room. Returns the new room's ID.
-roomRoute.post("/", roomController.createRoom);
+roomRoute.post("/",authCheck ,roomController.createRoom);
 
 // Fetches the details of a specific game room.
 roomRoute.get("/:roomId", (req, res, next) => {
