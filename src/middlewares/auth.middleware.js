@@ -25,7 +25,8 @@ jwt.verify(token,process.env.SECRET,(error,decode)=>{
   }
 
   req.user = decode
-  next(error);
+  // console.log('req.user at middleware', req.user)
+  next();
 
 })
 
