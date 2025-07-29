@@ -2,6 +2,16 @@ import prisma from "../config/prisma.config.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import createError from "../utils/create-error.util.js";
+import cloudinary from "../config/cloudinary.config.js";
+import fs from "fs/promises";
+
+// Array ของรูปภาพโปรไฟล์เริ่มต้น
+const defaultAvatars = [
+  "https://www.svgrepo.com/show/420360/avatar-batman-comics.svg",
+  "https://www.svgrepo.com/show/420329/anime-away-face.svg",
+  "https://www.svgrepo.com/show/420350/christmas-clous-santa.svg",
+  "https://www.svgrepo.com/show/420347/avatar-einstein-professor.svg",
+];
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -19,26 +29,30 @@ export const registerUser = async (req, res, next) => {
     // เข้ารหัสผ่าน
     const hashedPassword = bcrypt.hashSync(password, 10);
 
+    // 1. สุ่ม index จาก array defaultAvatars
+    const randomIndex = Math.floor(Math.random() * defaultAvatars.length);
+    // 2. ดึง URL รูปภาพที่สุ่มได้ออกมา
+    const randomAvatarUrl = defaultAvatars[randomIndex];
+
     // สร้าง User ใหม่ (ไม่ต้องส่ง provider, Prisma จะใช้ default value เอง)
     const newUser = await prisma.user.create({
       data: {
         email: email,
         username: username,
         password: hashedPassword,
+        image: randomAvatarUrl,
         // ไม่ต้องระบุ provider และ role ที่นี่ Prisma จะใช้ค่า default จาก schema
       },
     });
-    
+
     // สร้าง WinRate record สำหรับ user ใหม่
     await prisma.winRate.create({
       data: {
         userId: newUser.id,
-      }
+      },
     });
 
-
     res.status(201).json({ message: "User registered successfully." });
-
   } catch (error) {
     next(error);
   }
@@ -79,7 +93,6 @@ export const loginUser = async (req, res, next) => {
       user: userInfo,
       token: token,
     });
-
   } catch (error) {
     next(error);
   }
@@ -123,14 +136,35 @@ export const listUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { id } = req.user; // id จาก token
-    const { email, username } = req.body; // รับแค่ email กับ username
+    const { username } = req.body;
+
+    // 1. สร้าง Object ว่างๆ เพื่อรอเก็บข้อมูลที่จะอัปเดต
+    const dataToUpdate = {};
+
+    // 2. ตรวจสอบว่ามีการส่ง username มาหรือไม่
+    if (username) {
+      dataToUpdate.username = username;
+    }
+
+    // 3. ตรวจสอบว่ามีการอัปโหลดไฟล์ใหม่หรือไม่ (Multer จะสร้าง req.file ให้)
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profile_images", // จัดระเบียบไฟล์ใน Cloudinary
+      });
+      // นำ secure_url จาก Cloudinary มาใส่ใน object ที่จะอัปเดต
+      dataToUpdate.image = result.secure_url;
+      // ลบไฟล์ชั่วคราวออกจากเซิร์ฟเวอร์หลังอัปโหลดสำเร็จ
+      await fs.unlink(req.file.path);
+    }
+
+    // 4. ตรวจสอบว่ามีข้อมูลอะไรให้อัปเดตหรือไม่
+    if (Object.keys(dataToUpdate).length === 0) {
+      return res.status(400).json({ message: "No data provided for update." });
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: id },
-      data: {
-        email: email,
-        username: username,
-      },
+      data: dataToUpdate,
       omit: { password: true },
     });
 
@@ -139,6 +173,12 @@ export const updateUser = async (req, res, next) => {
       user: updatedUser,
     });
   } catch (error) {
+    if (req.file) {
+      // ใช้ .catch เผื่อกรณีที่ไฟล์ไม่มีอยู่แล้ว
+      await fs.unlink(req.file.path).catch((err) => {
+        console.error("Error deleting temp file on failure:", err);
+      });
+    }
     next(error);
   }
 };
