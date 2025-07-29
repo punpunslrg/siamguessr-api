@@ -29,3 +29,55 @@ export const createRoom = async (req, res, next) => {
     next(error);
   }
 };
+
+export const joinRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+    const room = await roomService.joinRoom(roomId, userId);
+    // (option) emit socket event here
+    res.json(room);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    console.log('roomId', roomId)
+    const room = await roomService.getRoom(roomId);
+    if (!room) return createError(404, "Room not found");
+    res.json(room);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const leaveRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+    const result = await roomService.leaveRoom(roomId, userId);
+
+    // (option) emit socket event "room:exploded" หรือ "room:update"
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const startRoom = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+    const result = await roomService.startRoom(roomId, userId);
+    res.json(result);
+  } catch (error) {
+    if (error.message === "Not all players are ready") {
+      return next(createError(400, "ยังมีผู้เล่นที่ไม่ ready"));
+    }
+    next(error);
+  }
+};
+
