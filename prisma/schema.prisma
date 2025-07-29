@@ -153,23 +153,24 @@ model RoomPlayer {
 }
 
 model Round {
-  id           String    @id @default(cuid())
-  roundNumber  Int
-  createdAt    DateTime  @default(now())
-  endedAt      DateTime?
+  id          String    @id @default(cuid())
+  roundNumber Int
+  createdAt   DateTime  @default(now())
+  startAt     DateTime?
+  endedAt     DateTime?
 
   // --- Relations ---
-  roomId  String
-  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  guesses Guess[]
+  roomId     String
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  guesses    Guess[]
   locationId String
   location   CuratedLocation @relation(fields: [locationId], references: [id])
 }
 
 model Guess {
   id         String   @id @default(cuid())
-  guessedLat Decimal?  @db.Decimal(10, 7)
-  guessedLng Decimal?  @db.Decimal(10, 7)
+  guessedLat Decimal? @db.Decimal(10, 7)
+  guessedLng Decimal? @db.Decimal(10, 7)
   distance   Float? // in kilometers
   score      Int      @default(0)
   guessedAt  DateTime @default(now())
@@ -179,6 +180,7 @@ model Guess {
   userId  String
   round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([roundId, userId])
 }
 
 model Leaderboard {
