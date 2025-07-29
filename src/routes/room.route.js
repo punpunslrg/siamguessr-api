@@ -4,34 +4,38 @@ import { authCheck } from "../middlewares/auth.middleware.js";
 const roomRoute = express.Router();
 
 // Creates a new game room. Returns the new room's ID.
-roomRoute.post("/",authCheck ,roomController.createRoom);
+roomRoute.post("/", authCheck, roomController.createRoom);
 
 // Join ห้องด้วย roomId หรือ code
-roomRoute.post("/:roomId/join",authCheck, roomController.joinRoom );
+roomRoute.post("/:roomId/join", authCheck, roomController.joinRoom);
 
 // ดูข้อมูลห้อง, รายชื่อ player
-roomRoute.get("/:roomId",roomController.getRoom);
+roomRoute.get("/:roomId", roomController.getRoom);
 
 // Leave Room
-roomRoute.post("/:roomId/leave",authCheck,roomController.leaveRoom)
+roomRoute.post("/:roomId/leave", authCheck, roomController.leaveRoom);
 
 // Host start game
-roomRoute.post("/:roomId/start",authCheck, roomController.startRoom);
-  
-roomRoute.get("/:roomId/current-round",(req,res,next)=>{
-  res.status(200).json({ mesaage: "ดึงข้อมูลรอบปัจจุบัน" });
-})
+roomRoute.post("/:roomId/start", authCheck, roomController.startRoom);
 
-roomRoute.post("/:roomId/rounds/:roundId/guess",(req,res,next)=>{
-  res.status(200).json({ mesaage: "ส่งคำตอบ user lat/lng" });
-})
+// ready and waiting
+roomRoute.patch(
+  "/:roomId/players/me",
+  authCheck,
+  roomController.updatePlayerStatus
+);
 
-roomRoute.get("/:roomId/rounds/:roundId/guesses",(req,res,next)=>{
-  res.status(200).json({ mesaage: "admin/host ดูคำตอบทุกคน (หรือเฉลยตอนจบ)" });
-})
+// เช็คดูแต่ละ round
+roomRoute.get(
+  "/:roomId/current-round",
+  authCheck,
+  roomController.getCurrentRound
+);
 
-roomRoute.get("/:roomId/rounds",(req,res,next)=>{
+roomRoute.get(":roomId/results",roomController.getRoomResults)
+
+roomRoute.get("/:roomId/rounds", (req, res, next) => {
   res.status(200).json({ mesaage: "ประวัติรอบทั้งหมดของห้อง" });
-})
+});
 
 export default roomRoute;
