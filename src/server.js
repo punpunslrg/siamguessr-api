@@ -11,6 +11,8 @@ import roomRoute from "./routes/room.route.js";
 import gameRoute from "./routes/game.route.js";
 import { Server as SocketIOServer } from "socket.io";
 import { createServer } from "http";
+import roundRoute from "./routes/round.route.js";
+import guessRoute from "./routes/guess.route.js";
 
 dotenv.config();
 
@@ -35,6 +37,8 @@ app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/friends", friendRoute);
 app.use("/api/rooms", roomRoute);
+app.use("/api/rounds", roundRoute)
+app.use("/api/guess", guessRoute)
 app.use("/api/game", gameRoute);
 
 app.use(notFoundMiddleware);
