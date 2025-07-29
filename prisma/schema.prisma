@@ -168,8 +168,8 @@ model Round {
 
 model Guess {
   id         String   @id @default(cuid())
-  guessedLat Decimal  @db.Decimal(10, 7)
-  guessedLng Decimal  @db.Decimal(10, 7)
+  guessedLat Decimal?  @db.Decimal(10, 7)
+  guessedLng Decimal?  @db.Decimal(10, 7)
   distance   Float? // in kilometers
   score      Int      @default(0)
   guessedAt  DateTime @default(now())
