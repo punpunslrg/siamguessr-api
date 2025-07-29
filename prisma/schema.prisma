@@ -156,6 +156,7 @@ model Round {
   id           String    @id @default(cuid())
   roundNumber  Int
   createdAt    DateTime  @default(now())
+  startedAt    DateTime?
   endedAt      DateTime?
 
   // --- Relations ---
