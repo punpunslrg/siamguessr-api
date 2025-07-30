@@ -2,18 +2,12 @@ import prisma from "../config/prisma.config.js";
 import createError from "../utils/create-error.util.js";
 
 async function getRandomLocations(count = 5) {
-  // 1. ดึง id ทั้งหมด
-  const allIds = await prisma.curatedLocation.findMany({
-    where: { isVerified: true },
-    select: { id: true },
-  });
-  // 2. สุ่ม 5 id ที่ไม่ซ้ำ
-  const shuffled = allIds.sort(() => 0.5 - Math.random());
-  const randomIds = shuffled.slice(0, count).map((loc) => loc.id);
-  // 3. query detail ของ 5 id นี้
-  const locations = await prisma.curatedLocation.findMany({
-    where: { id: { in: randomIds } },
-  });
+  const locations = await prisma.$queryRaw`
+    SELECT * FROM curatedLocation 
+    WHERE isVerified = true 
+    ORDER BY RAND() 
+    LIMIT ${count}
+  `;
   return locations;
 }
 
@@ -208,7 +202,7 @@ export const setPlayerStatus = async (roomId, userId, status) => {
 // (option) เช็คว่า user เป็นสมาชิกในห้องนี้หรือเปล่า
 export const checkRoomMember = async (roomId, userId) => {
   const player = await prisma.roomPlayer.findUnique({
-    where: { roomId_userId: { roomId, userId } }
+    where: { roomId_userId: { roomId, userId } },
   });
   return !!player; // true = เป็นสมาชิก, false = ไม่ใช่
 };
@@ -218,12 +212,14 @@ export const getCurrentRound = async (roomId) => {
   const round = await prisma.round.findFirst({
     where: {
       roomId,
-      endedAt: null 
+      endedAt: null,
     },
-    orderBy: { roundNumber: 'asc' },
+    orderBy: { roundNumber: "asc" },
     include: {
-      location: { select: { id: true, lat: true, lng: true, description: true } }
-    }
+      location: {
+        select: { id: true, lat: true, lng: true, description: true },
+      },
+    },
   });
 
   if (!round) return null;
@@ -233,7 +229,7 @@ export const getCurrentRound = async (roomId) => {
     roomId: round.roomId,
     startedAt: round.createdAt,
     endedAt: round.endedAt,
-    location: round.location
+    location: round.location,
   };
 };
 
@@ -244,25 +240,25 @@ export const getRoomResults = async (roomId) => {
     include: {
       players: {
         include: {
-          user: { select: { username: true } }
-        }
+          user: { select: { username: true } },
+        },
       },
       rounds: {
-        select: { id: true, roundNumber: true }
-      }
-    }
+        select: { id: true, roundNumber: true },
+      },
+    },
   });
   if (!room || room.status !== "finished") return null;
 
   // 2. ดึง guess ของทุก user ทุก round
   const guesses = await prisma.guess.findMany({
-    where: { roundId: { in: room.rounds.map(r => r.id) } },
-    select: { 
+    where: { roundId: { in: room.rounds.map((r) => r.id) } },
+    select: {
       userId: true,
       roundId: true,
       score: true,
-      round: { select: { roundNumber: true } }
-    }
+      round: { select: { roundNumber: true } },
+    },
   });
 
   // 3. สร้าง result สำหรับแต่ละ user
@@ -272,7 +268,7 @@ export const getRoomResults = async (roomId) => {
       userId: p.userId,
       username: p.user.username,
       totalScore: 0,
-      roundScores: []
+      roundScores: [],
     };
   }
   for (const g of guesses) {
@@ -280,7 +276,7 @@ export const getRoomResults = async (roomId) => {
       userMap[g.userId].totalScore += g.score;
       userMap[g.userId].roundScores.push({
         roundNumber: g.round.roundNumber,
-        score: g.score
+        score: g.score,
       });
     }
   }
@@ -295,12 +291,12 @@ export const getRoomResults = async (roomId) => {
     .sort((a, b) => b.totalScore - a.totalScore)
     .map((u, i, arr) => ({
       ...u,
-      rank: arr.findIndex(other => other.totalScore === u.totalScore) + 1 // กรณี tie
+      rank: arr.findIndex((other) => other.totalScore === u.totalScore) + 1, // กรณี tie
     }));
 
   return {
     roomId: room.id,
     status: room.status,
-    results: resultsArray
+    results: resultsArray,
   };
 };

@@ -11,13 +11,9 @@ import roomRoute from "./routes/room.route.js";
 import gameRoute from "./routes/game.route.js";
 import { Server as SocketIOServer } from "socket.io";
 import { createServer } from "http";
-<<<<<<< HEAD
 import leaderboardRoute from "./routes/leaderboard.route.js";
-import http from "http";
-=======
 import roundRoute from "./routes/round.route.js";
 import guessRoute from "./routes/guess.route.js";
->>>>>>> ab57617c7bf0a705a879296d8c92f61afad9e9c4
 
 dotenv.config();
 
@@ -25,11 +21,11 @@ const PORT = process.env.PORT || 8890;
 const app = express();
 const httpServer = createServer(app);
 
-// app.use(
-//   cors({
-//     origin: ["http://localhost:5173", "http://localhost:5174"],
-//   })
-// );
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"],
+  })
+);
 
 const io = new SocketIOServer(httpServer, {
   cors: {

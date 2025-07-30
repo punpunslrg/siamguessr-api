@@ -12,8 +12,8 @@ export const submitGuess = async ({ roundId, userId, guess, distance, score }) =
     data: {
       roundId,
       userId,
-      guessedLat: guess.lat,
-      guessedLng: guess.lng,
+      guessedLat: +guess.lat,
+      guessedLng: +guess.lng,
       distance,
       score,
       guessedAt: new Date()

@@ -156,7 +156,7 @@ model Round {
   id          String    @id @default(cuid())
   roundNumber Int
   createdAt   DateTime  @default(now())
-  startAt     DateTime?
+  startedAt   DateTime?
   endedAt     DateTime?
 
   // --- Relations ---
@@ -180,6 +180,7 @@ model Guess {
   userId  String
   round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([roundId, userId])
 }
 
