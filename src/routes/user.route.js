@@ -1,6 +1,6 @@
 import express from "express";
 import { adminCheck, authCheck } from "../middlewares/auth.middleware.js";
-import { deleteUser, getMe, listUser, updateUser, updateUserByAdmin } from "../controllers/auth.controller.js";
+import { deleteUser, getMe, listUser, updateUser } from "../controllers/auth.controller.js";
 import upload from "../middlewares/upload.middleware.js"
 
 const userRoute = express.Router();
@@ -18,7 +18,6 @@ userRoute.get("/getme",authCheck,getMe)
 
 userRoute.patch('/update',authCheck, upload.single("image"), updateUser)
 
-userRoute.patch('/:id', authCheck, adminCheck, updateUserByAdmin)
 
 userRoute.delete("/:id",authCheck, adminCheck, deleteUser)
 

@@ -1,5 +1,5 @@
 //Validate with yup
-import { object,string,ref } from "yup";
+import Yup, { object,string,ref } from "yup";
 
 export const registerSchema = object({
   email: string().email("Invalid Email").required("Please enter Email"),

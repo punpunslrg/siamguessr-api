@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 import passport from 'passport';
 
-import { loginSchema,registerSchema, validate } from "../validations/validator.js";
+import { loginSchema,registerSchema, schemaVerifyOtp, validate } from "../validations/validator.js";
 import authController, { registerUser,loginUser } from "../controllers/auth.controller.js";
 
 const authRoute = express.Router();
@@ -54,8 +54,8 @@ authRoute.get(
 
 authRoute.post('/refresh', authController.refresh);
 
-authRouter.post('/forgot-password', authController.forgotPassword);
-authRouter.post('/verify-otp',validate(schemaVerifyOtp), authController.verifyOtp);
-authRouter.post('/reset-password', authController.resetPassword);
+authRoute.post('/forgot-password', authController.forgotPassword);
+authRoute.post('/verify-otp',validate(schemaVerifyOtp), authController.verifyOtp);
+authRoute.post('/reset-password', authController.resetPassword);
 
 export default authRoute;

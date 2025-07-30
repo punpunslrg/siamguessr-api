@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.config.js"
 import emailService from "./email.service.js"
 import hashService from "./hash.service.js"
-import createError from "../utils/create-error.js"
+import createError from "../utils/create-error.util.js"
 import crypto from 'crypto'
 
 const authService = {}
