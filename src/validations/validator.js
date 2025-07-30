@@ -3,14 +3,14 @@ import { object,string,ref } from "yup";
 
 export const registerSchema = object({
   email: string().email("Invalid Email").required("Please enter Email"),
-  name:string().min(3, "Name must be more than 3 chars").required("Please enter Username"),
-  password:string().min(6, "Password must be more than 6 chars"),
-  confirmPassword:string().oneOf([ref("password"), null], "Invalid password"),
+  username:string().min(3, "Name must be more than 3 chars").required("Please enter your name"),
+  password:string().min(6, "Password must be more than 6 chars").required("Please enter a password"),
+  confirmPassword:string().oneOf([ref("password"), null], "Invalid password").required("Please confirm your password"),
 })
 
 export const loginSchema = object({
-  name:string().min(3, "Name must be more than 3 chars").required("Please enter Username"),
-  password:string().min(6, "Password must be more than 6 chars"),
+  email: string().email("Invalid Email").required("Please enter Email"),
+  password:string().min(6, "Password must be more than 6 chars").required("Please enter a password"),
 })
 
 export const validate = (schema) => async (req,res,next) => {
@@ -20,7 +20,7 @@ export const validate = (schema) => async (req,res,next) => {
     next();
   } catch (error) {
     const errMsg = error.errors.map((item)=>item)
-    const errTxt = errMsg.join(",")
+    const errTxt = errMsg.join(", ")
     console.log("errortext",errTxt)
     const mergeErr = new Error(errTxt)
     next(mergeErr);

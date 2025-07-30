@@ -41,6 +41,7 @@ enum RoomStatus {
 
 enum PlayerStatus {
   ready
+  waiting
   playing
   left
 }
@@ -50,6 +51,25 @@ enum FriendStatus {
   accepted
   declined
   blocked
+}
+
+enum Difficulty {
+  classic
+  challenge
+}
+
+// optional
+
+enum SubscriptionPlan {
+  free
+  basic
+  pro
+  elite
+}
+
+enum SubscriptionStatus {
+  active
+  cancel
 }
 
 // -----------------------------------------------------
@@ -119,26 +139,27 @@ model WinRate {
 
 model Room {
   id         String     @id @default(cuid())
-  name       String
+  code       String?
   mode       RoomMode   @default(single)
+  difficulty Difficulty
   status     RoomStatus @default(waiting)
   maxPlayers Int        @default(1)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
   // --- Relations ---
-  hostId         String
-  host           User            @relation("Host", fields: [hostId], references: [id], onDelete: Cascade)
-  players        RoomPlayer[]
-  rounds         Round[]
-  bestGameScores BestGameScore[]
+  hostId           String
+  host             User               @relation("Host", fields: [hostId], references: [id], onDelete: Cascade)
+  players          RoomPlayer[]
+  rounds           Round[]
+  gameScoreHistory GameScoreHistory[]
 }
 
 model RoomPlayer {
-  score    Int          @default(0)
-  isHost   Boolean      @default(false)
-  status   PlayerStatus @default(playing)
-  joinedAt DateTime     @default(now())
+  totalScore Int          @default(0)
+  isHost     Boolean      @default(false)
+  status     PlayerStatus @default(playing)
+  joinedAt   DateTime     @default(now())
 
   // --- Relations ---
   roomId String
@@ -161,34 +182,42 @@ model Round {
   guesses    Guess[]
   locationId String
   location   CuratedLocation @relation(fields: [locationId], references: [id])
+  roomId     String
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  guesses    Guess[]
+  locationId String
+  location   CuratedLocation @relation(fields: [locationId], references: [id])
 }
 
 model Guess {
-  id          String   @id @default(cuid())
-  guessedLat  Decimal  @db.Decimal(10, 7)
-  guessedLng  Decimal  @db.Decimal(10, 7)
-  distance    Float? // in kilometers
-  score       Int      @default(0)
-  guessedAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  guessedLat Decimal? @db.Decimal(10, 7)
+  guessedLng Decimal? @db.Decimal(10, 7)
+  distance   Float? // in kilometers
+  score      Int      @default(0)
+  guessedAt  DateTime @default(now())
 
   // --- Relations ---
   roundId String
   userId  String
   round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([roundId, userId])
 }
 
 model Leaderboard {
-  id            Int      @id @default(autoincrement())
-  averageTop5   Int      @default(0)
-  updatedAt     DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  totalGames  Int      @default(0)
+  averageTop5 Int      @default(0)
+  updatedAt   DateTime @updatedAt
 
   // --- Relations ---
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model BestGameScore {
+model GameScoreHistory {
   id       Int      @id @default(autoincrement())
   score    Int
   playedAt DateTime @default(now())
@@ -202,7 +231,7 @@ model BestGameScore {
 
 model Friend {
   status     FriendStatus
-  createdAt  DateTime  @default(now())
+  createdAt  DateTime     @default(now())
   responseAt DateTime?
 
   // --- Relations ---
@@ -219,13 +248,13 @@ model Friend {
 // -----------------------------------------------------
 
 model Subscription {
-  id                   Int       @id @default(autoincrement())
-  plan                 String // e.g., "premium", "pro"
-  stripeSubscriptionId String    @unique
+  id                   Int              @id @default(autoincrement())
+  subscriptionPlan     SubscriptionPlan @default(free)
+  stripeSubscriptionId String           @unique
   status               String // e.g., "active", "canceled"
   startedAt            DateTime
   expiresAt            DateTime
-  updatedAt            DateTime  @updatedAt
+  updatedAt            DateTime         @updatedAt
 
   // --- Relations ---
   userId String @unique
@@ -233,9 +262,9 @@ model Subscription {
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  isGroup   Boolean   @default(false)
-  createdAt DateTime  @default(now())
+  id        String   @id @default(cuid())
+  isGroup   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   // --- Relations ---
   participants ConversationParticipant[]
@@ -265,6 +294,21 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
+
+model CuratedLocation {
+  id            String    @id @default(cuid())
+  lat           Decimal   @db.Decimal(10, 7)
+  lng           Decimal   @db.Decimal(10, 7)
+  countryCode   String? // e.g., "TH" for Thailand
+  description   String? // e.g., "Road in front of Victory Monument"
+  isVerified    Boolean   @default(true) // To flag if a location becomes broken
+  lastCheckedAt DateTime? // Timestamp of the last verification check
+
+  // --- Relations ---
+  // This shows which rounds have used this location
+  rounds Round[]
+}
+
 
 model CuratedLocation {
   id            String    @id @default(cuid())

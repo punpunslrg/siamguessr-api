@@ -1,26 +1,41 @@
 import express from "express";
-
+import * as roomController from "../controllers/room.controller.js";
+import { authCheck } from "../middlewares/auth.middleware.js";
 const roomRoute = express.Router();
 
-// Fetches a list of all public, joinable rooms for the lobby.
-roomRoute.get("/", (req, res, next) => {
-  res.status(200).json({ mesaage: "get me path" });
-});
-
 // Creates a new game room. Returns the new room's ID.
-roomRoute.post("/", (req, res, next) => {
-  res.status(200).json({ mesaage: "put me path" });
-});
+roomRoute.post("/", authCheck, roomController.createRoom);
 
-// Fetches the details of a specific game room.
-roomRoute.get("/:roomId", (req, res, next) => {
-  res.status(200).json({ mesaage: "put me path" });
-});
+// Join ห้องด้วย roomId หรือ code
+roomRoute.post("/:roomId/join", authCheck, roomController.joinRoom);
 
-// Allows the current user to join a specific room.
-roomRoute.post("/:roomId/join", (req, res, next) => {
-  res.status(200).json({ mesaage: "put me path" });
-});
+// ดูข้อมูลห้อง, รายชื่อ player
+roomRoute.get("/:roomId", roomController.getRoom);
 
+// Leave Room
+roomRoute.post("/:roomId/leave", authCheck, roomController.leaveRoom);
+
+// Host start game
+roomRoute.post("/:roomId/start", authCheck, roomController.startRoom);
+
+// ready and waiting
+roomRoute.patch(
+  "/:roomId/players/me",
+  authCheck,
+  roomController.updatePlayerStatus
+);
+
+// เช็คดูแต่ละ round
+roomRoute.get(
+  "/:roomId/current-round",
+  authCheck,
+  roomController.getCurrentRound
+);
+
+roomRoute.get(":roomId/results",roomController.getRoomResults)
+
+roomRoute.get("/:roomId/rounds", (req, res, next) => {
+  res.status(200).json({ mesaage: "ประวัติรอบทั้งหมดของห้อง" });
+});
 
 export default roomRoute;
