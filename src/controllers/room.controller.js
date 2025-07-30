@@ -1,5 +1,9 @@
+import prisma from "../config/prisma.config.js";
 import * as roomService from "../services/room.service.js";
 import createError from "../utils/create-error.util.js";
+
+const startedAt = new Date();
+const endedAt = new Date(startedAt.getTime() + 90 * 1000);
 
 export const createRoom = async (req, res, next) => {
   try {
@@ -24,6 +28,25 @@ export const createRoom = async (req, res, next) => {
       difficulty
     );
 
+    if (room.mode === "single") {
+      // Auto start the game
+      await prisma.room.update({
+        where: { id: room.id },
+        data: { status: "playing" },
+      });
+
+      // Start the first round immediately
+      await prisma.round.updateMany({
+        where: { roomId: room.id, roundNumber: 1 },
+        data: {
+          startedAt,
+          endedAt,
+        },
+      });
+
+      room.status = "playing";
+    }
+
     res.json({ message: "room create", room });
   } catch (error) {
     next(error);
@@ -45,7 +68,7 @@ export const joinRoom = async (req, res, next) => {
 export const getRoom = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log('roomId', roomId)
+    console.log("roomId", roomId);
     const room = await roomService.getRoom(roomId);
     if (!room) return createError(404, "Room not found");
     res.json(room);
@@ -84,7 +107,7 @@ export const startRoom = async (req, res, next) => {
 export const updatePlayerStatus = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    const userId = req.user.id; 
+    const userId = req.user.id;
     const { status } = req.body;
 
     const valid = ["ready", "waiting"].includes(status);
@@ -106,10 +129,11 @@ export const getCurrentRound = async (req, res, next) => {
 
     // เช็คว่า user อยู่ในห้องจริงหรือเปล่า (ถ้าต้องการ)
     const isMember = await roomService.checkRoomMember(roomId, userId);
-    if (!isMember) return next(createError(403, "You are not a member of this room"));
+    if (!isMember)
+      return (createError(403, "You are not a member of this room"));
 
     const currentRound = await roomService.getCurrentRound(roomId);
-    if (!currentRound) return next(createError(404, "No current round"));
+    if (!currentRound) return (createError(404, "No current round"));
     res.json(currentRound);
   } catch (error) {
     next(error);
@@ -121,6 +145,7 @@ export const getRoomResults = async (req, res, next) => {
     const { roomId } = req.params;
     const results = await roomService.getRoomResults(roomId);
     if (!results) return next(createError(404, "Room not found or not finished"));
+
     res.json(results);
   } catch (error) {
     next(error);
