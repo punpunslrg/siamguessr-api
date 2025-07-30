@@ -13,6 +13,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { createServer } from "http";
 import roundRoute from "./routes/round.route.js";
 import guessRoute from "./routes/guess.route.js";
+import socketServer from "./socket.server.js";
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ app.use("/api/rooms", roomRoute);
 app.use("/api/rounds", roundRoute)
 app.use("/api/guess", guessRoute)
 app.use("/api/game", gameRoute);
+
+socketServer(io)
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
