@@ -22,11 +22,11 @@ enum UserStatus {
   banned
 }
 
-enum AuthProvider {
-  local 
-  google
-  facebook
-}
+// enum AuthProvider {
+//   local
+//   google
+//   facebook
+// }
 
 enum RoomMode {
   single
@@ -57,28 +57,64 @@ enum FriendStatus {
 // -----------------------------------------------------
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String? 
-  name      String?
-  image     String?
-  role      Role     @default(user)
-  status    UserStatus @default(pending)
-  provider  String  
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  password             String?
+  username             String?
+  image                String?
+  role                 Role          @default(user)
+  status               UserStatus    @default(pending)
+  facebookId           String        @unique
+  googleId             String
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  RefreshToken         RefreshToken?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+// --- Relations ---
+
+hostedRooms              Room[]                    @relation("Host")
+roomPlayers              RoomPlayer[]
+guesses                  Guess[]
+leaderboard              Leaderboard?
+gameScoreHistory         GameScoreHistory[]
+sentFriendRequests       Friend[]                  @relation("SentRequests")
+receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
+subscription             Subscription?
+conversationParticipants ConversationParticipant[]
+messages                 Message[]
+
+// --- ADD THIS RELATION ---
+winRate WinRate?
+}
+
+ model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    String   @unique
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "RefreshToken_accountId_fkey")
+}
+
+// --- ADD THIS NEW MODEL ---
+model WinRate {
+  id            String   @id @default(cuid())
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  draws         Int      @default(0)
+  gamesPlayed   Int      @default(0)
+  winPercentage Float    @default(0.0)
+  lastUpdated   DateTime @updatedAt
 
   // --- Relations ---
-  hostedRooms              Room[]                     @relation("Host")
-  roomPlayers              RoomPlayer[]
-  guesses                  Guess[]
-  leaderboard              Leaderboard?
-  bestScores               BestGameScore[]
-  sentFriendRequests       Friend[]                   @relation("SentRequests")
-  receivedFriendRequests   Friend[]                   @relation("ReceivedRequests")
-  subscription             Subscription?
-  conversationParticipants ConversationParticipant[]
-  messages                 Message[]
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Room {
@@ -114,17 +150,17 @@ model RoomPlayer {
 }
 
 model Round {
-  id           String    @id @default(cuid())
-  roundNumber  Int
-  locationLat  Decimal   @db.Decimal(10, 7)
-  locationLng  Decimal   @db.Decimal(10, 7)
-  createdAt    DateTime  @default(now())
-  endedAt      DateTime?
+  id          String    @id @default(cuid())
+  roundNumber Int
+  createdAt   DateTime  @default(now())
+  endedAt     DateTime?
 
   // --- Relations ---
-  roomId  String
-  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  guesses Guess[]
+  roomId     String
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  guesses    Guess[]
+  locationId String
+  location   CuratedLocation @relation(fields: [locationId], references: [id])
 }
 
 model Guess {
@@ -228,4 +264,18 @@ model Message {
   senderId       String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model CuratedLocation {
+  id            String    @id @default(cuid())
+  lat           Decimal   @db.Decimal(10, 7)
+  lng           Decimal   @db.Decimal(10, 7)
+  countryCode   String? // e.g., "TH" for Thailand
+  description   String? // e.g., "Road in front of Victory Monument"
+  isVerified    Boolean   @default(true) // To flag if a location becomes broken
+  lastCheckedAt DateTime? // Timestamp of the last verification check
+
+  // --- Relations ---
+  // This shows which rounds have used this location
+  rounds Round[]
 }
