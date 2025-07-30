@@ -1,4 +1,5 @@
-import * as roundService from "../services/round.service.js"
+import prisma from "../config/prisma.config.js";
+import * as roundService from "../services/round.service.js";
 import createError from "../utils/create-error.util.js";
 
 export const getRoundResult = async (req, res, next) => {
@@ -14,17 +15,29 @@ export const getRoundResult = async (req, res, next) => {
 
 export const startNextRound = async (req, res, next) => {
   try {
-    const { roomId } = req.body;
+    const { roundId } = req.body;
     const userId = req.user.id;
 
-    // (option) เช็คว่า user เป็น host
-    const room = await prisma.room.findUnique({ where: { id: roomId } });
-    if (!room) return next(createError(404, "Room not found"));
-    if (room.hostId !== userId) return next(createError(403, "Only host can start new round"));
+    // ดึงรอบเพื่อหา roomId และตรวจสอบสิทธิ์
+    const round = await prisma.round.findUnique({
+      where: { id: roundId },
+      include: { room: true }, // รวมข้อมูล room มาด้วย
+    });
 
-    const nextRound = await roundService.startNextRound(roomId);
-    if (!nextRound) return next(createError(400, "No next round available"));
-    res.json(nextRound);
+    if (!round) return next(createError(404, "Round not found"));
+    if (round.room.hostId !== userId) {
+      return next(createError(403, "Only host can start this round"));
+    }
+
+    if (round.startedAt !== null) {
+      return next(createError(400, "This round has already started"));
+    }
+
+    const updatedRound = await roundService.startNextRound(roundId);
+    if (!updatedRound)
+      return next(createError(400, "Could not start the round"));
+
+    res.json(updatedRound);
   } catch (error) {
     next(error);
   }

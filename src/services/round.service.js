@@ -4,13 +4,15 @@ export const getRoundResult = async (roundId) => {
   const round = await prisma.round.findUnique({
     where: { id: roundId },
     include: {
-      location: { select: { id: true, lat: true, lng: true, description: true } },
+      location: {
+        select: { id: true, lat: true, lng: true, description: true },
+      },
       guesses: {
         include: {
-          user: { select: { id: true, username: true } }
-        }
-      }
-    }
+          user: { select: { id: true, username: true } },
+        },
+      },
+    },
   });
 
   if (!round) return null;
@@ -19,40 +21,44 @@ export const getRoundResult = async (roundId) => {
     roundId: round.id,
     roundNumber: round.roundNumber,
     location: round.location,
-    guesses: round.guesses.map(g => ({
+    guesses: round.guesses.map((g) => ({
       userId: g.userId,
       username: g.user.username,
       guessedLat: g.guessedLat,
       guessedLng: g.guessedLng,
       distance: g.distance, // (ควรคำนวณแล้วเก็บใน db ตอน submit guess)
-      score: g.score
-    }))
+      score: g.score,
+    })),
   };
 };
 
-export const startNextRound = async (roomId) => {
-  // 1. หารอบที่ยังไม่เริ่ม (หรือ next roundNumber)
-  const nextRound = await prisma.round.findFirst({
-    where: {
-      roomId,
-      endedAt: null // ยังไม่จบ
-    },
-    orderBy: { roundNumber: 'asc' }
+export const startNextRound = async (roundId) => {
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
   });
 
-  if (!nextRound) return null;
+  if (!round || round.startedAt !== null) return null; // already started or not found
 
-  // 2. (option) update อะไรเพิ่มถ้าต้องการ mark as started
+  const now = new Date();
+  const endedAt = new Date(now.getTime() + 90 * 1000);
 
-  // 3. return ข้อมูลรอบใหม่
+  const updatedRound = await prisma.round.update({
+    where: { id: roundId },
+    data: {
+      startedAt: now,
+      endedAt: endedAt,
+    },
+  });
+
   return {
-    id: nextRound.id,
-    roundNumber: nextRound.roundNumber,
-    roomId: nextRound.roomId,
+    id: updatedRound.id,
+    roundNumber: updatedRound.roundNumber,
+    roomId: updatedRound.roomId,
     location: await prisma.curatedLocation.findUnique({
-      where: { id: nextRound.locationId },
-      select: { id: true, lat: true, lng: true, description: true }
+      where: { id: updatedRound.locationId },
+      select: { id: true, lat: true, lng: true, description: true },
     }),
-    startedAt: nextRound.createdAt
+    startedAt: updatedRound.startedAt,
+    endedAt: updatedRound.endedAt,
   };
 };
