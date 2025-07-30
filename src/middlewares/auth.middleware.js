@@ -29,3 +29,11 @@ export const authCheck = (req, res, next) => {
     next(error);
   }
 };
+
+export const adminCheck = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    next(createError(403, 'Forbidden: Admin access required.'));
+  }
+};
