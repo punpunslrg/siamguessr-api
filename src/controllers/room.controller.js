@@ -130,10 +130,10 @@ export const getCurrentRound = async (req, res, next) => {
     // เช็คว่า user อยู่ในห้องจริงหรือเปล่า (ถ้าต้องการ)
     const isMember = await roomService.checkRoomMember(roomId, userId);
     if (!isMember)
-      return next(createError(403, "You are not a member of this room"));
+      return (createError(403, "You are not a member of this room"));
 
     const currentRound = await roomService.getCurrentRound(roomId);
-    if (!currentRound) return next(createError(404, "No current round"));
+    if (!currentRound) return (createError(404, "No current round"));
     res.json(currentRound);
   } catch (error) {
     next(error);
@@ -144,8 +144,8 @@ export const getRoomResults = async (req, res, next) => {
   try {
     const { roomId } = req.params;
     const results = await roomService.getRoomResults(roomId);
-    if (!results)
-      return next(createError(404, "Room not found or not finished"));
+    if (!results) return next(createError(404, "Room not found or not finished"));
+
     res.json(results);
   } catch (error) {
     next(error);

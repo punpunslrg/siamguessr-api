@@ -62,4 +62,3 @@ export const startNextRound = async (roundId) => {
     endedAt: updatedRound.endedAt,
   };
 };
-
