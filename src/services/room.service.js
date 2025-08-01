@@ -81,6 +81,8 @@ export const createRoom = async (userId, mode, maxPlayers, difficulty) => {
       id: r.id,
       roundNumber: r.roundNumber,
       location: r.location,
+      startedAt: r.startedAt,
+      endedAt: r.endedAt
     })),
   };
 };
@@ -256,6 +258,7 @@ export const getRoomResults = async (roomId) => {
     select: {
       userId: true,
       roundId: true,
+      distance: true,
       score: true,
       round: { select: { roundNumber: true } },
     },
@@ -277,6 +280,7 @@ export const getRoomResults = async (roomId) => {
       userMap[g.userId].roundScores.push({
         roundNumber: g.round.roundNumber,
         score: g.score,
+        distance: g.distance, 
       });
     }
   }

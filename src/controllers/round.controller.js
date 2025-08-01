@@ -37,7 +37,7 @@ export const startNextRound = async (req, res, next) => {
     if (!updatedRound)
       return next(createError(400, "Could not start the round"));
 
-    res.json(updatedRound);
+    res.json({ round: updatedRound });
   } catch (error) {
     next(error);
   }

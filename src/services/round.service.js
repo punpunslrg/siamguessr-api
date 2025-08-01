@@ -35,9 +35,14 @@ export const getRoundResult = async (roundId) => {
 export const startNextRound = async (roundId) => {
   const round = await prisma.round.findUnique({
     where: { id: roundId },
+    include: {
+      location: {
+        select: { id: true, lat: true, lng: true, description: true },
+      },
+    },
   });
 
-  if (!round || round.startedAt !== null) return null; // already started or not found
+  if (!round || round.startedAt !== null) return null;
 
   const now = new Date();
   const endedAt = new Date(now.getTime() + 90 * 1000);
@@ -48,18 +53,19 @@ export const startNextRound = async (roundId) => {
       startedAt: now,
       endedAt: endedAt,
     },
+    include: {
+      location: {
+        select: { id: true, lat: true, lng: true, description: true },
+      },
+    },
   });
 
   return {
     id: updatedRound.id,
     roundNumber: updatedRound.roundNumber,
     roomId: updatedRound.roomId,
-    location: await prisma.curatedLocation.findUnique({
-      where: { id: updatedRound.locationId },
-      select: { id: true, lat: true, lng: true, description: true },
-    }),
+    location: updatedRound.location,
     startedAt: updatedRound.startedAt,
     endedAt: updatedRound.endedAt,
   };
 };
-
