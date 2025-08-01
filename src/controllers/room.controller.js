@@ -71,7 +71,7 @@ export const getRoom = async (req, res, next) => {
     console.log("roomId", roomId);
     const room = await roomService.getRoom(roomId);
     if (!room) return createError(404, "Room not found");
-    res.json(room);
+    res.json({room});
   } catch (error) {
     next(error);
   }
