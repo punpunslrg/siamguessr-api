@@ -30,24 +30,41 @@ export const createRoom = async (req, res, next) => {
 
     if (room.mode === "single") {
       // Auto start the game
+      const startedAt = new Date();
+      const endedAt = new Date(Date.now() + 90 * 1000);
+
       await prisma.room.update({
         where: { id: room.id },
         data: { status: "playing" },
       });
 
-      // Start the first round immediately
       await prisma.round.updateMany({
         where: { roomId: room.id, roundNumber: 1 },
-        data: {
-          startedAt,
-          endedAt,
+        data: { startedAt, endedAt },
+      });
+
+      const updatedRoom = await prisma.room.findUnique({
+        where: { id: room.id },
+        include: {
+          players: { include: { user: true } },
+          rounds: {
+            include: {
+              location: {
+                select: {
+                  id: true,
+                  lat: true,
+                  lng: true,
+                  description: true,
+                },
+              },
+            },
+          },
         },
       });
 
-      room.status = "playing";
+      // Return updated version
+      return res.json({ message: "room create", room: updatedRoom });
     }
-
-    res.json({ message: "room create", room });
   } catch (error) {
     next(error);
   }
@@ -143,6 +160,7 @@ export const getCurrentRound = async (req, res, next) => {
 export const getRoomResults = async (req, res, next) => {
   try {
     const { roomId } = req.params;
+    console.log(roomId);
     const results = await roomService.getRoomResults(roomId);
     if (!results) return next(createError(404, "Room not found or not finished"));
 
