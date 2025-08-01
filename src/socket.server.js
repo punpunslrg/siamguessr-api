@@ -18,8 +18,8 @@ export default function socketServer(io) {
 
   io.on("connection", (socket) => {
     socket.on("changeStatus", async ({ status, roomName }) => {
-      console.log("status", status);
-      console.log("roomName", roomName);
+      // console.log("status", status);
+      // console.log("roomName", roomName);
       await prisma.roomPlayer.updateMany({
         where: {
           userId: socket.user.id,
@@ -35,8 +35,16 @@ export default function socketServer(io) {
             code: roomName,
           },
         },
+        include: {
+          user: {
+            select: {
+              username: true,
+              image: true,
+            },
+          },
+        },
       });
-      // console.log('player', player)
+      // console.log('playerChangeStatus', player)
       io.to(roomName).emit("playersData", player);
     });
     socket.on("joinRoom", async ({ roomName, room }) => {
@@ -62,7 +70,7 @@ export default function socketServer(io) {
         await prisma.roomPlayer.create({
           data: {
             userId: socket.user.id,
-            roomId: room.id
+            roomId: room.id,
           },
         });
       }
@@ -71,6 +79,14 @@ export default function socketServer(io) {
         where: {
           room: {
             code: roomName,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              username: true,
+              image: true,
+            },
           },
         },
       });
