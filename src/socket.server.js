@@ -136,11 +136,11 @@ export default function socketServer(io) {
     });
 
     socket.on("startgame", async (room) => {
-      console.log('room at startgame', room)
+      console.log("room at startgame", room);
       const existRoom = await prisma.room.findFirst({
         where: {
-          id: room.id
-        }
+          id: room.id,
+        },
       });
       if (!existRoom) {
         createError(401, "ไม่มีห้องจ้า");
@@ -170,7 +170,9 @@ export default function socketServer(io) {
       const updatedRoom = await prisma.room.findUnique({
         where: { id: room.id },
         include: {
-          players: { include: { user: { select: { username: true, image: true } } } },
+          players: {
+            include: { user: { select: { username: true, image: true } } },
+          },
           rounds: {
             include: {
               location: {
@@ -186,6 +188,55 @@ export default function socketServer(io) {
         },
       });
       io.to(room.code).emit("gameStarted", updatedRoom);
+    });
+
+    socket.on("playerGuessed", async (guessed) => {
+      console.log('guessed', guessed)
+      await prisma.guess.upsert({
+        where: {
+          roundId_userId: {
+            roundId: guessed.roundId,
+            userId: socket.user.id,
+          },
+        },
+        update: {
+          guessedLat: guessed.guess.lat,
+          guessedLng: guessed.guess.lng,
+          distance: guessed.distance,
+          score: guessed.score,
+        },
+        create: {
+          userId: socket.user.id,
+          roundId: guessed.roundId,
+          guessedLat: guessed.guess.lat,
+          guessedLng: guessed.guess.lng,
+          distance: guessed.distance,
+          score: guessed.score,
+        },
+      });
+
+      const allGuessed = await prisma.guess.findMany({
+        where: {
+          roundId: guessed.roundId,
+        },
+      });
+      const round = await prisma.round.findUnique({
+        where: { id: guessed.roundId },
+        include: {
+          room: {
+            include: {
+              players: true,
+              // code: true,
+            },
+          },
+        },
+      });
+      const numPlayers = round?.room?.players?.length || 0;
+      console.log("allGuessed", allGuessed);
+      // ถ้าผู้เล่นทุกคนทายครบ
+      if (allGuessed.length === numPlayers && numPlayers > 0) {
+        io.to(round.room.code).emit("allGuessed", allGuessed);
+      }
     });
   });
 }
