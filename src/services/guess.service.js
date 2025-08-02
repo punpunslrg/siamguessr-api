@@ -41,3 +41,44 @@ export const submitGuess = async ({
 
   return newGuess;
 };
+
+export const haveAllPlayersGuessed = async (roundId) => {
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
+    include: {
+      room: {
+        include: {
+          players: true,
+        },
+      },
+      guesses: true,
+    },
+  });
+
+  return round.guesses.length === round.room.players.length;
+};
+
+export const getRoundResults = async (roundId) => {
+  const guesses = await prisma.guess.findMany({
+    where: { roundId },
+    include: {
+      user: true,
+    },
+  });
+
+  return guesses.map((g) => ({
+    playerName: g.user.username,
+    guess: g.guess,
+    distance: g.distance,
+    score: g.score,
+  }));
+};
+
+export const getRoomIdByRoundId = async (roundId) => {
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
+    include: { room: true },
+  });
+
+  return round.roomId;
+};
