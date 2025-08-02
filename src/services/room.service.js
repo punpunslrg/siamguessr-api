@@ -131,7 +131,7 @@ export const getRoom = async (roomId) => {
     where: { id: roomId },
     include: {
       players: {
-        include: { user: { select: { username: true } } },
+        include: { user: { select: { username: true, image: true } } },
       },
       rounds: {
         include: {
