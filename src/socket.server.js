@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import prisma from "./config/prisma.config.js";
 import createError from "./utils/create-error.util.js";
+import { getRoomResults } from "./services/room.service.js";
 
 const connectedPlayers = new Map();
 const disconnectTimers = new Map();
@@ -334,9 +335,10 @@ export default function socketServer(io) {
         .emit("nextRoundStarted", { round, currentRoundIndex });
     });
 
-    socket.on("gamebreakdown", ({room, roomResult}) => {
-      console.log("roomResult", roomResult)
-      io.to(room.code).emit("game-finished", {roomResult})
+    socket.on("gamebreakdown", async ({room}) => {
+      const roomResult = await getRoomResults(room.id)
+      console.log('roomResult', roomResult)
+      io.to(room.code).emit("game-finished", {roomResult : roomResult.results})
     })
   });
 }
