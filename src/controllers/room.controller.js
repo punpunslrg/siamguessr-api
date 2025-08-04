@@ -2,9 +2,6 @@ import prisma from "../config/prisma.config.js";
 import * as roomService from "../services/room.service.js";
 import createError from "../utils/create-error.util.js";
 
-const startedAt = new Date();
-const endedAt = new Date(startedAt.getTime() + 90 * 1000);
-
 export const createRoom = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -28,7 +25,7 @@ export const createRoom = async (req, res, next) => {
       difficulty
     );
 
-if (room.mode === "single") {
+    if (room.mode === "single") {
       // Auto start the game immediately for single-player mode
       const startedAt = new Date();
       const endedAt = new Date(Date.now() + 90 * 1000);
@@ -84,12 +81,12 @@ export const joinRoom = async (req, res, next) => {
 export const getRoom = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log("roomId", roomId);
+    // console.log("roomId", roomId);
     const room = await roomService.getRoom(roomId);
-    if (!room) return createError(404, "Room not found");
-    res.json({room});
+    if (!room) createError(404, "Room not found");
+    res.json({ room });
   } catch (error) {
-    next(error);
+    next(error); 
   }
 };
 
@@ -145,11 +142,10 @@ export const getCurrentRound = async (req, res, next) => {
 
     // เช็คว่า user อยู่ในห้องจริงหรือเปล่า (ถ้าต้องการ)
     const isMember = await roomService.checkRoomMember(roomId, userId);
-    if (!isMember)
-      return (createError(403, "You are not a member of this room"));
+    if (!isMember) return createError(403, "You are not a member of this room");
 
     const currentRound = await roomService.getCurrentRound(roomId);
-    if (!currentRound) return (createError(404, "No current round"));
+    if (!currentRound) return createError(404, "No current round");
     res.json(currentRound);
   } catch (error) {
     next(error);
@@ -159,9 +155,11 @@ export const getCurrentRound = async (req, res, next) => {
 export const getRoomResults = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log(roomId);
+    console.log("roomId from getRoomResults", roomId)
     const results = await roomService.getRoomResults(roomId);
-    if (!results) return next(createError(404, "Room not found or not finished"));
+    console.log("results from getRoomResults", results)
+    if (!results)
+      return createError(404, "Room not found or not finished");
 
     res.json(results);
   } catch (error) {

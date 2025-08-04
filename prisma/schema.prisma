@@ -150,6 +150,7 @@ model RoomPlayer {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([roomId, userId])
+  @@unique([userId, roomId], name: "userId_roomId")
 }
 
 model Round {

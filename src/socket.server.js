@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 import prisma from "./config/prisma.config.js";
 import createError from "./utils/create-error.util.js";
 
-const roomInfo = {};
+const connectedPlayers = new Map();
+const disconnectTimers = new Map();
 
 export default function socketServer(io) {
   io.use((socket, next) => {
@@ -18,6 +19,57 @@ export default function socketServer(io) {
   });
 
   io.on("connection", (socket) => {
+    if (disconnectTimers.has(socket.user.id)) {
+      console.log("reconnected");
+      clearTimeout(disconnectTimers.get(socket.user.id));
+      disconnectTimers.delete(socket.user.id);
+    }
+    socket.on("disconnect", () => {
+      const timer = setTimeout(async () => {
+        try {
+          console.log("💀 Disconnected:", socket.user?.id);
+
+          const roomPlayers = await prisma.roomPlayer.findMany({
+            where: { userId: socket.user.id },
+          });
+
+          for (const player of roomPlayers) {
+            const room = await prisma.room.findUnique({
+              where: { id: player.roomId },
+            });
+
+            await prisma.roomPlayer.deleteMany({
+              where: {
+                userId: socket.user.id,
+                roomId: player.roomId,
+              },
+            });
+
+            if (player.isHost) {
+              await prisma.room.delete({ where: { id: player.roomId } });
+              io.to(room.code).emit("leaveRoom", {});
+            }
+
+            const updatedPlayers = await prisma.roomPlayer.findMany({
+              where: { roomId: player.roomId },
+              include: {
+                user: { select: { username: true, image: true } },
+              },
+            });
+
+            if (room) {
+              io.to(room.code).emit("playersData", updatedPlayers);
+              io.to(room.code).emit("playerDisconnect", updatedPlayers);
+            }
+          }
+        } catch (err) {
+          console.error("Error on disconnect cleanup:", err);
+        }
+      }, 10000); // Wait 30 seconds before cleanup
+
+      disconnectTimers.set(socket.user.id, timer);
+    });
+
     socket.on("changeStatus", async ({ status, roomName }) => {
       // console.log("status", status);
       // console.log("roomName", roomName);
@@ -49,13 +101,24 @@ export default function socketServer(io) {
       io.to(roomName).emit("playersData", player);
     });
     socket.on("joinRoom", async ({ roomName, room }) => {
+      connectedPlayers.set(socket.id, { userId: socket.user.id, roomName });
+
+      // ✅ Check if room still exists (host might have left)
+      const currentRoom = await prisma.room.findUnique({
+        where: { id: room.id },
+      });
+
+      if (!currentRoom) {
+        return socket.emit("leaveRoom", {}); // trigger client to go back
+      }
+
       const existPlayer = await prisma.roomPlayer.findFirst({
         where: {
           userId: socket.user.id,
           roomId: room.id,
         },
       });
-      // console.log('existPlayer', existPlayer)
+
       if (!existPlayer) {
         const countPlayer = await prisma.roomPlayer.count({
           where: {
@@ -64,18 +127,37 @@ export default function socketServer(io) {
             },
           },
         });
+
         if (countPlayer >= 2) {
           return socket.emit("error", { message: "Lobby is full" });
         }
-        await prisma.roomPlayer.create({
-          data: {
-            userId: socket.user.id,
-            roomId: room.id,
-            status: "waiting",
-          },
-        });
+
+        try {
+          await prisma.roomPlayer.upsert({
+            where: {
+              userId_roomId: {
+                userId: socket.user.id,
+                roomId: room.id,
+              },
+            },
+            update: {}, // do nothing if exists
+            create: {
+              userId: socket.user.id,
+              roomId: room.id,
+              status: "waiting",
+            },
+          });
+        } catch (err) {
+          if (err.code === "P2002") {
+            // Player already exists, maybe rejoining — just continue
+          } else {
+            throw err; // Rethrow other errors
+          }
+        }
       }
+
       socket.join(roomName);
+
       const player = await prisma.roomPlayer.findMany({
         where: {
           room: {
@@ -91,32 +173,39 @@ export default function socketServer(io) {
           },
         },
       });
-      console.log("player", player);
+
       io.to(roomName).emit("playersData", player);
     });
+
     socket.on("leaveRoom", async (room) => {
+      // console.log("room from server", room)
+      socket.leave(room.code);
+
       const playerLeaveRoom = await prisma.roomPlayer.findFirst({
         where: {
           userId: socket.user.id,
           roomId: room.id,
         },
       });
+
+      if (!playerLeaveRoom) return; 
+
       if (playerLeaveRoom.isHost) {
-        await prisma.room.delete({
-          where: {
-            id: room.id,
-          },
-        });
-        io.to(room.code).emit("leaveRoom", {});
+        await prisma.room.delete({ where: { id: room.id } });
+
+        socket.to(room.code).emit("leaveRoom", {}); 
+        socket.emit("leaveRoom", {});
         return;
       }
+
       await prisma.roomPlayer.deleteMany({
         where: {
           userId: socket.user.id,
           roomId: room.id,
         },
       });
-      const player = await prisma.roomPlayer.findMany({
+
+      const updatedPlayers = await prisma.roomPlayer.findMany({
         where: {
           roomId: room.id,
         },
@@ -129,10 +218,9 @@ export default function socketServer(io) {
           },
         },
       });
-      // console.log("player", player);
-      io.to(room.code).emit("playersData", player);
+
+      io.to(room.code).emit("playersData", updatedPlayers);
       socket.emit("leaveRoom", {});
-      socket.leave(room.code);
     });
 
     socket.on("startgame", async (room) => {
@@ -191,7 +279,7 @@ export default function socketServer(io) {
     });
 
     socket.on("playerGuessed", async (guessed) => {
-      console.log('guessed', guessed)
+      // console.log("guessed", guessed);
       await prisma.guess.upsert({
         where: {
           roundId_userId: {
@@ -232,11 +320,23 @@ export default function socketServer(io) {
         },
       });
       const numPlayers = round?.room?.players?.length || 0;
-      console.log("allGuessed", allGuessed);
       // ถ้าผู้เล่นทุกคนทายครบ
       if (allGuessed.length === numPlayers && numPlayers > 0) {
+        // console.log("allGuessed", allGuessed);
         io.to(round.room.code).emit("allGuessed", allGuessed);
       }
     });
+
+    socket.on("nextRoundStarted", ({ roomCode, round, currentRoundIndex }) => {
+      console.log("nextRoundStarted")
+      socket
+        .to(roomCode)
+        .emit("nextRoundStarted", { round, currentRoundIndex });
+    });
+
+    socket.on("gamebreakdown", ({room, roomResult}) => {
+      console.log("roomResult", roomResult)
+      io.to(room.code).emit("game-finished", {roomResult})
+    })
   });
 }
