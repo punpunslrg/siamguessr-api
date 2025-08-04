@@ -131,7 +131,7 @@ export const getRoom = async (roomId) => {
     where: { id: roomId },
     include: {
       players: {
-        include: { user: { select: { username: true } } },
+        include: { user: { select: { username: true, image: true } } },
       },
       rounds: {
         include: {
@@ -250,6 +250,7 @@ export const getRoomResults = async (roomId) => {
       },
     },
   });
+  console.log("room from service", room.status)
   if (!room || room.status !== "finished") return null;
 
   // 2. ดึง guess ของทุก user ทุก round

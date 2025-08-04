@@ -29,7 +29,6 @@ export const createRoom = async (req, res, next) => {
       // Auto start the game immediately for single-player mode
       const startedAt = new Date();
       const endedAt = new Date(Date.now() + 90 * 1000);
-
       await prisma.room.update({
         where: { id: room.id },
         data: { status: "playing" },
@@ -82,12 +81,12 @@ export const joinRoom = async (req, res, next) => {
 export const getRoom = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log("roomId", roomId);
+    // console.log("roomId", roomId);
     const room = await roomService.getRoom(roomId);
-    if (!room) return createError(404, "Room not found");
+    if (!room) createError(404, "Room not found");
     res.json({ room });
   } catch (error) {
-    next(error);
+    next(error); 
   }
 };
 
@@ -156,10 +155,11 @@ export const getCurrentRound = async (req, res, next) => {
 export const getRoomResults = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log(roomId);
+    console.log("roomId from getRoomResults", roomId)
     const results = await roomService.getRoomResults(roomId);
+    console.log("results from getRoomResults", results)
     if (!results)
-      return next(createError(404, "Room not found or not finished"));
+      return createError(404, "Room not found or not finished");
 
     res.json(results);
   } catch (error) {
