@@ -32,7 +32,7 @@ roomRoute.get(
   roomController.getCurrentRound
 );
 
-roomRoute.get("/:roomId/results", roomController.getRoomResults)
+roomRoute.get("/:roomId/results", roomController.getRoomResultsAndUpdateWinrate)
 
 roomRoute.get("/:roomId/rounds", (req, res, next) => {
   res.status(200).json({ mesaage: "ประวัติรอบทั้งหมดของห้อง" });

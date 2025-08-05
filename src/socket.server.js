@@ -194,7 +194,7 @@ export default function socketServer(io) {
       if (playerLeaveRoom.isHost && newRoom.status !== "finished") {
         await prisma.room.delete({ where: { id: newRoom.id } });
         
-        socket.to(newRoom.code).emit("leaveRoom", {}); 
+        io.to(newRoom.code).emit("leaveRoom", {}); 
         socket.emit("leaveRoom", {});
         return;
       }
@@ -222,7 +222,7 @@ export default function socketServer(io) {
       socket.leave(newRoom.code);
       
       io.to(newRoom.code).emit("playersData", updatedPlayers);
-      io.to(newRoom.code).emit("leaveRoom", {});
+      socket.emit("leaveRoom", {}); 
     });
 
     socket.on("startgame", async (room) => {
