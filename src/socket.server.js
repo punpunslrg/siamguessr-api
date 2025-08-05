@@ -338,7 +338,7 @@ export default function socketServer(io) {
 
     socket.on("gamebreakdown", async ({room}) => {
       const roomResult = await getRoomResults(room.id)
-      console.log('roomResult', roomResult)
+      // console.log('roomResult', roomResult)
       io.to(room.code).emit("game-finished", {roomResult : roomResult.results})
     })
   });
