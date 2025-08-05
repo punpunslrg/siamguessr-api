@@ -152,12 +152,10 @@ export const getCurrentRound = async (req, res, next) => {
   }
 };
 
-export const getRoomResults = async (req, res, next) => {
+export const getRoomResultsAndUpdateWinrate = async (req, res, next) => {
   try {
     const { roomId } = req.params;
-    console.log("roomId from getRoomResults", roomId)
     const results = await roomService.getRoomResults(roomId);
-    console.log("results from getRoomResults", results)
     if (!results)
       return createError(404, "Room not found or not finished");
 

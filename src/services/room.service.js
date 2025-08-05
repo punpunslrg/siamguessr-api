@@ -82,7 +82,7 @@ export const createRoom = async (userId, mode, maxPlayers, difficulty) => {
       roundNumber: r.roundNumber,
       location: r.location,
       startedAt: r.startedAt,
-      endedAt: r.endedAt
+      endedAt: r.endedAt,
     })),
   };
 };
@@ -250,7 +250,7 @@ export const getRoomResults = async (roomId) => {
       },
     },
   });
-  console.log("room from service", room.status)
+  console.log("room from service", room.status);
   if (!room || room.status !== "finished") return null;
 
   // 2. ดึง guess ของทุก user ทุก round
@@ -281,7 +281,7 @@ export const getRoomResults = async (roomId) => {
       userMap[g.userId].roundScores.push({
         roundNumber: g.round.roundNumber,
         score: g.score,
-        distance: g.distance, 
+        distance: g.distance,
       });
     }
   }
@@ -298,6 +298,80 @@ export const getRoomResults = async (roomId) => {
       ...u,
       rank: arr.findIndex((other) => other.totalScore === u.totalScore) + 1, // กรณี tie
     }));
+
+  for (const player of resultsArray) {
+    // check ว่ายังไม่มี history นี้มาก่อน (กันบันทึกซ้ำ)
+    const exist = await prisma.gameScoreHistory.findFirst({
+      where: {
+        roomId: room.id,
+        userId: player.userId,
+      },
+    });
+    if (!exist) {
+      await prisma.gameScoreHistory.create({
+        data: {
+          roomId: room.id,
+          userId: player.userId,
+          score: player.totalScore,
+          playedAt: new Date(), // หรือใช้ room.updatedAt ก็ได้
+        },
+      });
+    }
+  }
+
+  if (room.mode === "multi") {
+    console.log(
+      "multiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+      resultsArray
+    );
+    const topRank = resultsArray[0].rank;
+    const winners = resultsArray.filter((u) => u.rank === topRank);
+    const isDraw = winners.length > 1;
+
+    for (const user of resultsArray) {
+      const existingWinRate = await prisma.winRate.findUnique({
+        where: { userId: user.userId },
+      });
+
+      let wins = existingWinRate?.wins || 0;
+      let losses = existingWinRate?.losses || 0;
+      let draws = existingWinRate?.draws || 0;
+      let gamesPlayed = existingWinRate?.gamesPlayed || 0;
+
+      gamesPlayed += 1;
+
+      if (user.rank === topRank) {
+        if (isDraw) {
+          draws += 1;
+        } else {
+          wins += 1;
+        }
+      } else {
+        losses += 1;
+      }
+
+      const winPercentage = (wins / gamesPlayed) * 100;
+
+      await prisma.winRate.upsert({
+        where: { userId: user.userId },
+        update: {
+          wins,
+          losses,
+          draws,
+          gamesPlayed,
+          winPercentage,
+        },
+        create: {
+          userId: user.userId,
+          wins,
+          losses,
+          draws,
+          gamesPlayed,
+          winPercentage,
+        },
+      });
+    }
+  }
 
   return {
     roomId: room.id,
