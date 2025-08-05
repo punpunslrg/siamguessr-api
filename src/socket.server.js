@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import prisma from "./config/prisma.config.js";
 import createError from "./utils/create-error.util.js";
+import { getRoom, getRoomResults } from "./services/room.service.js";
 
 const connectedPlayers = new Map();
 const disconnectTimers = new Map();
@@ -65,7 +66,7 @@ export default function socketServer(io) {
         } catch (err) {
           console.error("Error on disconnect cleanup:", err);
         }
-      }, 10000); // Wait 30 seconds before cleanup
+      }, 10000); // Wait 10 seconds before cleanup
 
       disconnectTimers.set(socket.user.id, timer);
     });
@@ -178,36 +179,36 @@ export default function socketServer(io) {
     });
 
     socket.on("leaveRoom", async (room) => {
-      // console.log("room from server", room)
-      socket.leave(room.code);
-
+      console.log("room from server", room)
+      const newRoom = await getRoom(room.id)
+      console.log('newRoom', newRoom)
       const playerLeaveRoom = await prisma.roomPlayer.findFirst({
         where: {
           userId: socket.user.id,
-          roomId: room.id,
+          roomId: newRoom.id,
         },
       });
-
+      
       if (!playerLeaveRoom) return; 
-
-      if (playerLeaveRoom.isHost) {
-        await prisma.room.delete({ where: { id: room.id } });
-
-        socket.to(room.code).emit("leaveRoom", {}); 
+      
+      if (playerLeaveRoom.isHost && newRoom.status !== "finished") {
+        await prisma.room.delete({ where: { id: newRoom.id } });
+        
+        socket.to(newRoom.code).emit("leaveRoom", {}); 
         socket.emit("leaveRoom", {});
         return;
       }
-
+      
       await prisma.roomPlayer.deleteMany({
         where: {
           userId: socket.user.id,
-          roomId: room.id,
+          roomId: newRoom.id,
         },
       });
-
+      
       const updatedPlayers = await prisma.roomPlayer.findMany({
         where: {
-          roomId: room.id,
+          roomId: newRoom.id,
         },
         include: {
           user: {
@@ -218,9 +219,10 @@ export default function socketServer(io) {
           },
         },
       });
-
-      io.to(room.code).emit("playersData", updatedPlayers);
-      socket.emit("leaveRoom", {});
+      socket.leave(newRoom.code);
+      
+      io.to(newRoom.code).emit("playersData", updatedPlayers);
+      io.to(newRoom.code).emit("leaveRoom", {});
     });
 
     socket.on("startgame", async (room) => {
@@ -334,9 +336,10 @@ export default function socketServer(io) {
         .emit("nextRoundStarted", { round, currentRoundIndex });
     });
 
-    socket.on("gamebreakdown", ({room, roomResult}) => {
-      console.log("roomResult", roomResult)
-      io.to(room.code).emit("game-finished", {roomResult})
+    socket.on("gamebreakdown", async ({room}) => {
+      const roomResult = await getRoomResults(room.id)
+      console.log('roomResult', roomResult)
+      io.to(room.code).emit("game-finished", {roomResult : roomResult.results})
     })
   });
 }
