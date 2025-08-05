@@ -314,17 +314,13 @@ export const getRoomResults = async (roomId) => {
           userId: player.userId,
           score: player.totalScore,
           playedAt: new Date(), // หรือใช้ room.updatedAt ก็ได้
+          rank: player.rank
         },
       });
     }
   }
-
   if (room.mode === "multi") {
-    console.log(
-      "multiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
-      resultsArray
-    );
-    const topRank = resultsArray[0].rank;
+    const topRank = resultsArray[0]?.rank;
     const winners = resultsArray.filter((u) => u.rank === topRank);
     const isDraw = winners.length > 1;
 
@@ -372,7 +368,6 @@ export const getRoomResults = async (roomId) => {
       });
     }
   }
-
   return {
     roomId: room.id,
     status: room.status,
