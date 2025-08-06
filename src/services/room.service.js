@@ -184,9 +184,6 @@ export const startRoom = async (roomId, userId) => {
     data: { status: "playing" },
   });
 
-  // 2. (option) emit socket event ให้ทุกคนรู้ว่าเกมเริ่ม
-  // io.to(roomId).emit("game:start", {...})
-
   return { message: "Game started" };
 };
 
