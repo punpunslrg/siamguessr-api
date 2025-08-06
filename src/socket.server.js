@@ -179,9 +179,9 @@ export default function socketServer(io) {
     });
 
     socket.on("leaveRoom", async (room) => {
-      console.log("room from server", room)
+      // console.log("room from server", room)
       const newRoom = await getRoom(room.id)
-      console.log('newRoom', newRoom)
+      // console.log('newRoom', newRoom)
       const playerLeaveRoom = await prisma.roomPlayer.findFirst({
         where: {
           userId: socket.user.id,
@@ -226,7 +226,7 @@ export default function socketServer(io) {
     });
 
     socket.on("startgame", async (room) => {
-      console.log("room at startgame", room);
+      // console.log("room at startgame", room);
       const existRoom = await prisma.room.findFirst({
         where: {
           id: room.id,
