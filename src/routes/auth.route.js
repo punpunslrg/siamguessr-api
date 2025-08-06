@@ -53,6 +53,7 @@ authRoute.get(
 );
 
 authRoute.post('/refresh', authController.refresh);
+authRoute.post('/logout', authController.logout);
 
 authRoute.post('/forgot-password', authController.forgotPassword);
 authRoute.post('/verify-otp',validate(schemaVerifyOtp), authController.verifyOtp);

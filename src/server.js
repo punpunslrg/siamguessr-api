@@ -14,6 +14,11 @@ import { createServer } from "http";
 import leaderboardRoute from "./routes/leaderboard.route.js";
 import roundRoute from "./routes/round.route.js";
 import guessRoute from "./routes/guess.route.js";
+import passport from "passport";
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import './config/passport.js'; // ⬅️ import passport config
+import csrf from "csurf";
 
 dotenv.config();
 
@@ -21,9 +26,27 @@ const PORT = process.env.PORT || 8890;
 const app = express();
 const httpServer = createServer(app);
 
+// require("./passport"); // ⬅️ ต้อง import ก่อนใช้ passport.authenticate
+
+app.use(session({
+    secret: process.env.SESSION_SECRET, 
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', 
+        httpOnly: true,
+    }
+}));
+
+
+app.use(cookieParser())
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true, // เพื่อให้ส่ง cookies ได้
   })
 );
 
@@ -92,6 +115,28 @@ io.on("connection", (socket) => {
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
+
+
+const csrfProtection = csrf({ 
+  cookie: true,
+  ignoreMethods: ['GET', 'HEAD', 'OPTIONS']
+});
+
+// ใช้ CSRF แต่ยกเว้น OAuth routes และ register/login
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/auth/google') || 
+      req.path.startsWith('/api/auth/facebook') ||
+      req.path === '/api/auth/register' ||
+      req.path === '/api/auth/login') {
+    return next();
+  }
+  csrfProtection(req, res, next);
+});
+
+app.get('/csrf-token', (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+});
+
 
 app.use(express.json());
 app.use(morgan("dev"));

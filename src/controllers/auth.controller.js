@@ -7,7 +7,6 @@ import fs from "fs/promises";
 import authService from "../services/auth.service.js";
 import jwtService from "../services/jwt.service.js";
 import hashService from "../services/hash.service.js";
-import generateHN from "../utils/generateHN.js";
 import { OAuth2Client } from "google-auth-library";
 
 // Array ของรูปภาพโปรไฟล์เริ่มต้น
@@ -17,6 +16,8 @@ const defaultAvatars = [
   "https://www.svgrepo.com/show/420350/christmas-clous-santa.svg",
   "https://www.svgrepo.com/show/420347/avatar-einstein-professor.svg",
 ];
+
+const authController = {};
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -28,7 +29,7 @@ export const registerUser = async (req, res, next) => {
     });
 
     if (existingUser) {
-      return createError(400, "This email is already in use.");
+      createError(400, "This email is already in use.");
     }
 
     // เข้ารหัสผ่าน
@@ -67,36 +68,56 @@ export const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // ค้นหา user ด้วย email
     const user = await prisma.user.findUnique({
       where: { email: email },
     });
 
+    console.log('Login attempt:', { email, userFound: !!user, hasPassword: !!user?.password, provider: user?.provider });
+
     if (!user) {
-      return createError(400, "Invalid email or password.");
+     throw createError(400, "Invalid email or password.");
     }
 
-    // ตรวจสอบรหัสผ่าน
-    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+    if (!user.password) {
+     throw createError(400, "This account was created with social login. Please use Google/Facebook to sign in.");
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
 
     if (!isPasswordCorrect) {
-      return createError(400, "Invalid email or password.");
+     throw createError(400, "Invalid email or password.");
     }
 
-    // สร้าง Token
-    const payload = {
-      id: user.id,
-      role: user.role,
-    };
-    const token = jwt.sign(payload, process.env.SECRET, { expiresIn: "1d" });
+    const accessToken = await jwtService.genAccessToken({ id: user.id, role: user.role });
+    const refreshToken = await jwtService.genRefreshToken(user.id);
 
-    // ไม่ควรส่งข้อมูล user ทั้งหมดกลับไป
+    await prisma.refreshToken.upsert({
+      where: { userId: user.id },
+      update: {
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+      create: {
+        token: refreshToken,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        userId: user.id,
+      }
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     const { password: pw, ...userInfo } = user;
 
     res.json({
       message: `Welcome back ${user.username || user.email}`,
       user: userInfo,
-      token: token,
+      accessToken: accessToken,
+      // csrfToken: req.csrfToken()
     });
   } catch (error) {
     next(error);
@@ -202,7 +223,6 @@ export const deleteUser = async (req, res, next) => {
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const authController = {};
 
 authController.socialLoginSuccess = async (req, res, next) => {
   try {
@@ -215,7 +235,7 @@ authController.socialLoginSuccess = async (req, res, next) => {
 
 
     await prisma.refreshToken.upsert({
-      where: { accountId: user.id },
+      where: { userId: user.id },
       update: {
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -223,7 +243,7 @@ authController.socialLoginSuccess = async (req, res, next) => {
       create: {
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        accountId: user.id,
+        userId: user.id,
       }
     });
 
@@ -236,7 +256,7 @@ authController.socialLoginSuccess = async (req, res, next) => {
     });
 
    
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${accessToken}`);
+    res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
   } catch (err) {
     
     const errorMessage = encodeURIComponent(err.message || 'An unknown error occurred during social login.');
@@ -308,7 +328,7 @@ authController.refresh = async (req, res, next) => {
         token: oldRefreshToken
       },
       select: {
-        accountId: true,
+        userId: true,
         expiresAt: true
       }
     });
@@ -322,7 +342,7 @@ authController.refresh = async (req, res, next) => {
       throw createError(401, 'Token has not expired yet.');
     }
 
-    const userId = oldRefresh.accountId;
+    const userId = oldRefresh.userId;
     console.log('userId', userId)
 
     const newAccessToken = await jwtService.genAccessToken({ id: userId });
@@ -339,4 +359,22 @@ authController.refresh = async (req, res, next) => {
   }
 };
 
+authController.logout = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    
+    if (refreshToken) {
+      await prisma.refreshToken.deleteMany({
+        where: { token: refreshToken }
+      });
+    }
+    
+    res.clearCookie('refreshToken');
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const logout = authController.logout;
 export default authController;
