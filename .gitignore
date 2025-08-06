@@ -4,3 +4,8 @@ node_modules
 temp-pic/*
 !temp-pic/.gitkeep
 /generated/prisma
+check-oauth.js
+frontend-callback-example.js
+oauth-callback-example.html
+test-oauth.js
+test-frontend.html

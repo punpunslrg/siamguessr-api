@@ -22,11 +22,11 @@ enum UserStatus {
   banned
 }
 
-enum AuthProvider {
-  local
-  google
-  facebook
-}
+// enum AuthProvider {
+//   local
+//   google
+//   facebook
+// }
 
 enum RoomMode {
   single
@@ -77,31 +77,49 @@ enum SubscriptionStatus {
 // -----------------------------------------------------
 
 model User {
-  id        String       @id @default(cuid())
-  email     String       @unique
-  password  String?
-  username  String?
-  image     String?
-  role      Role         @default(user)
-  status    UserStatus   @default(active)
-  provider  AuthProvider @default(local)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id                   String        @id @default(cuid())
+  email                String        @unique
+  password             String?
+  username             String?
+  image                String?
+  role                 Role          @default(user)
+  status               UserStatus    @default(pending)
+  facebookId           String?       @unique
+  googleId             String?       @unique
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  RefreshToken         RefreshToken?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  // --- Relations ---
-  hostedRooms              Room[]                    @relation("Host")
-  roomPlayers              RoomPlayer[]
-  guesses                  Guess[]
-  leaderboard              Leaderboard[]
-  gameScoreHistory         GameScoreHistory[]
-  sentFriendRequests       Friend[]                  @relation("SentRequests")
-  receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
-  subscription             Subscription?
-  conversationParticipants ConversationParticipant[]
-  messages                 Message[]
+// --- Relations ---
 
-  // --- ADD THIS RELATION ---
-  winRate WinRate[]
+hostedRooms              Room[]                    @relation("Host")
+roomPlayers              RoomPlayer[]
+guesses                  Guess[]
+leaderboard              Leaderboard?
+gameScoreHistory         GameScoreHistory[]
+sentFriendRequests       Friend[]                  @relation("SentRequests")
+receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
+subscription             Subscription?
+conversationParticipants ConversationParticipant[]
+messages                 Message[]
+
+// --- ADD THIS RELATION ---
+winRate WinRate?
+}
+
+ model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "RefreshToken_userId_fkey")
 }
 
 // --- ADD THIS NEW MODEL ---
@@ -322,3 +340,5 @@ model CuratedLocation {
   // This shows which rounds have used this location
   rounds Round[]
 }
+
+
