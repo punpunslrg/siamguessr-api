@@ -1,6 +1,6 @@
 import prisma from "../config/prisma.config.js";
 
-export const getSingleplayerHistory = async (userId) => {
+export const getSingleplayerHistoryForUser = async (userId) => {
   const history = await prisma.gameScoreHistory.findMany({
     where: {
       userId: userId,
@@ -23,7 +23,7 @@ export const getSingleplayerHistory = async (userId) => {
   return history;
 };
 
-export const getMultiplayerHistory = async (userId) => {
+export const getMultiplayerHistoryForUser = async (userId) => {
   const history = await prisma.gameScoreHistory.findMany({
     where: {
       userId: userId,
