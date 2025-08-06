@@ -92,7 +92,7 @@ model User {
   hostedRooms              Room[]                    @relation("Host")
   roomPlayers              RoomPlayer[]
   guesses                  Guess[]
-  leaderboard              Leaderboard?
+  leaderboard              Leaderboard[]
   gameScoreHistory         GameScoreHistory[]
   sentFriendRequests       Friend[]                  @relation("SentRequests")
   receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
@@ -194,8 +194,13 @@ model Leaderboard {
   updatedAt   DateTime @updatedAt
 
   // --- Relations ---
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mode       RoomMode
+  difficulty Difficulty
+
+  @@unique([userId, mode, difficulty])
 }
 
 model GameScoreHistory {
@@ -204,11 +209,12 @@ model GameScoreHistory {
   playedAt DateTime @default(now())
   rank     Int?
 
+  difficulty Difficulty
   // --- Relations ---
-  roomId String
-  userId String
-  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId     String
+  userId     String
+  room       Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Friend {
