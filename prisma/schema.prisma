@@ -150,6 +150,7 @@ model RoomPlayer {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([roomId, userId])
+  @@unique([userId, roomId], name: "userId_roomId")
 }
 
 model Round {
@@ -199,6 +200,7 @@ model GameScoreHistory {
   id       Int      @id @default(autoincrement())
   score    Int
   playedAt DateTime @default(now())
+  rank     Int?
 
   // --- Relations ---
   roomId String
