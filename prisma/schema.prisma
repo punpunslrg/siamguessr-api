@@ -101,22 +101,24 @@ model User {
   messages                 Message[]
 
   // --- ADD THIS RELATION ---
-  winRate WinRate?
+  winRate WinRate[]
 }
 
 // --- ADD THIS NEW MODEL ---
 model WinRate {
-  id            String   @id @default(cuid())
-  wins          Int      @default(0)
-  losses        Int      @default(0)
-  draws         Int      @default(0)
-  gamesPlayed   Int      @default(0)
-  winPercentage Float    @default(0.0)
-  lastUpdated   DateTime @updatedAt
+  id            String      @id @default(cuid())
+  difficulty    Difficulty
+  wins          Int         @default(0)
+  losses        Int         @default(0)
+  draws         Int         @default(0)
+  gamesPlayed   Int         @default(0)
+  winPercentage Float       @default(0.0)
+  lastUpdated   DateTime    @updatedAt
 
   // --- Relations ---
-  userId String @unique
+  userId String 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, difficulty])
 }
 
 model Room {

@@ -311,7 +311,7 @@ export const getRoomResults = async (roomId) => {
           userId: player.userId,
           score: player.totalScore,
           playedAt: new Date(), // หรือใช้ room.updatedAt ก็ได้
-          rank: player.rank
+          rank: player.rank,
         },
       });
     }
@@ -322,8 +322,14 @@ export const getRoomResults = async (roomId) => {
     const isDraw = winners.length > 1;
 
     for (const user of resultsArray) {
+      const difficulty = room.difficulty;
       const existingWinRate = await prisma.winRate.findUnique({
-        where: { userId: user.userId },
+        where: {
+          userId_difficulty: {
+            userId: user.userId,
+            difficulty: room.difficulty,
+          },
+        },
       });
 
       let wins = existingWinRate?.wins || 0;
@@ -346,7 +352,7 @@ export const getRoomResults = async (roomId) => {
       const winPercentage = (wins / gamesPlayed) * 100;
 
       await prisma.winRate.upsert({
-        where: { userId: user.userId },
+        where: { userId_difficulty: { userId: user.userId, difficulty } },
         update: {
           wins,
           losses,
@@ -356,6 +362,7 @@ export const getRoomResults = async (roomId) => {
         },
         create: {
           userId: user.userId,
+          difficulty,
           wins,
           losses,
           draws,

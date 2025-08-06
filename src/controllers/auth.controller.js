@@ -46,13 +46,16 @@ export const registerUser = async (req, res, next) => {
     });
 
     // สร้าง WinRate record สำหรับ user ใหม่
-    await prisma.winRate.create({
-      data: {
-        userId: newUser.id,
-      },
-    });
+    for (const diff of ["classic", "challenge"]) {
+      await prisma.winRate.create({
+        data: {
+          userId: newUser.id,
+          difficulty: diff,
+        },
+      });
+    }
 
-    res.status(201).json({ message: "User registered successfully." });
+    res.status(201).json({ message: "User registered successfully." ,newUser});
   } catch (error) {
     next(error);
   }
@@ -201,13 +204,13 @@ export const updateUserByAdmin = async (req, res, next) => {
     const { status } = req.body;
 
     // ตรวจสอบว่า status ที่ส่งมาถูกต้องตาม enum หรือไม่
-    const validStatuses = ['pending', 'active', 'banned'];
+    const validStatuses = ["pending", "active", "banned"];
     if (status && !validStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Invalid status value.' });
+      return res.status(400).json({ message: "Invalid status value." });
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: id }, 
+      where: { id: id },
       data: {
         status,
       },
