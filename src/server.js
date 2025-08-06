@@ -17,6 +17,7 @@ import guessRoute from "./routes/guess.route.js";
 import paymentRoute from "./routes/payment.route.js";
 import { stripeWebhookHandler } from "./controllers/stripe/webhook.controller.js";
 import socketServer from "./socket.server.js";
+import { startLeaderboardCron } from "./cron/leaderboard.cron.js";
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ app.use("/api/game", gameRoute);
 app.use("/api/leaderboard", leaderboardRoute);
 app.use("/api/payment", paymentRoute);
 
+startLeaderboardCron();
 socketServer(io);
 
 app.use(notFoundMiddleware);

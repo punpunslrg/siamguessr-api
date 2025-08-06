@@ -311,7 +311,8 @@ export const getRoomResults = async (roomId) => {
           userId: player.userId,
           score: player.totalScore,
           playedAt: new Date(), // หรือใช้ room.updatedAt ก็ได้
-          rank: player.rank
+          rank: player.rank,
+          difficulty: room.difficulty,
         },
       });
     }
