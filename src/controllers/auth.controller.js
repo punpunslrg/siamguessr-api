@@ -255,6 +255,7 @@ authController.socialLoginSuccess = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    // res.json({user:"user"})
    
     res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
   } catch (err) {

@@ -15,7 +15,7 @@ export const authCheck = (req, res, next) => {
     console.log(token);
 
     //3. Verify Token
-    jwt.verify(token, process.env.SECRET, (error, decode) => {
+    jwt.verify(token, process.env.JWT_SECRET, (error, decode) => {
       // console.log(error)
       console.log("Decoded token:", decode);
       if (error) {
