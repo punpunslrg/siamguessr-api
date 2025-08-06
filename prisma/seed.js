@@ -1,4 +1,4 @@
-import prisma from "../src/config/prisma.config.js";
+import prisma, { SubscriptionTierName } from "../src/config/prisma.config.js";
 
 // The location data you provided
 const locationsData = [
@@ -94,8 +94,6 @@ const locationsData = [
   },
 ];
 
-// --------------------------------------------------------------------------------------------------
-
 async function main() {
   console.log(`Start seeding ...`);
 
@@ -115,6 +113,21 @@ async function main() {
   });
 
   console.log(`Seeding finished. Added ${result.count} locations.`);
+
+  console.log("Seeding subscription tiers...");
+  // ใช้ .upsert เพื่อป้องกันการสร้างข้อมูลซ้ำ
+  // มันจะหาด้วย stripePriceId, ถ้าเจอจะไม่อัปเดต, ถ้าไม่เจอจะสร้างใหม่
+  const basicTier = await prisma.subscriptionTier.upsert({
+    where: { stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N" }, // <-- Price ID ของ Basic Plan
+    update: {}, // ไม่ต้องทำอะไรถ้าเจอ
+    create: {
+      name: SubscriptionTierName.basic, // ใช้ Enum ที่ import มา
+      price: 119.0,
+      stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N",
+      description: "Basic Monthly Plan",
+    },
+  });
+  console.log(`Upserted 'basic' tier:`, basicTier);
 }
 
 main()

@@ -14,6 +14,8 @@ import { createServer } from "http";
 import leaderboardRoute from "./routes/leaderboard.route.js";
 import roundRoute from "./routes/round.route.js";
 import guessRoute from "./routes/guess.route.js";
+import paymentRoute from "./routes/payment.route.js";
+import { stripeWebhookHandler } from "./controllers/stripe/webhook.controller.js";
 import socketServer from "./socket.server.js";
 
 dotenv.config();
@@ -25,6 +27,7 @@ const httpServer = createServer(app);
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:5174"],
+    credentials: true
   })
 );
 
@@ -35,6 +38,13 @@ const io = new SocketIOServer(httpServer, {
     methods: ["GET", "POST"],
   },
 });
+
+// กำหนด Webhook Route ที่นี่ ก่อน Middleware ตัวอื่น
+app.post(
+  '/api/payment/stripe-webhook', 
+  express.raw({ type: 'application/json' }), 
+  stripeWebhookHandler
+);
 
 app.use(express.json());
 app.use(morgan("dev"));
@@ -47,6 +57,7 @@ app.use("/api/rounds", roundRoute);
 app.use("/api/guess", guessRoute);
 app.use("/api/game", gameRoute);
 app.use("/api/leaderboard", leaderboardRoute);
+app.use("/api/payment", paymentRoute);
 
 socketServer(io);
 
