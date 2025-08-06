@@ -60,7 +60,7 @@ enum Difficulty {
 
 // optional
 
-enum SubscriptionPlan {
+enum SubscriptionTierName {
   free
   basic
   pro
@@ -124,17 +124,19 @@ winRate WinRate?
 
 // --- ADD THIS NEW MODEL ---
 model WinRate {
-  id            String   @id @default(cuid())
-  wins          Int      @default(0)
-  losses        Int      @default(0)
-  draws         Int      @default(0)
-  gamesPlayed   Int      @default(0)
-  winPercentage Float    @default(0.0)
-  lastUpdated   DateTime @updatedAt
+  id            String      @id @default(cuid())
+  difficulty    Difficulty
+  wins          Int         @default(0)
+  losses        Int         @default(0)
+  draws         Int         @default(0)
+  gamesPlayed   Int         @default(0)
+  winPercentage Float       @default(0.0)
+  lastUpdated   DateTime    @updatedAt
 
   // --- Relations ---
-  userId String @unique
+  userId String 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, difficulty])
 }
 
 model Room {
@@ -168,12 +170,14 @@ model RoomPlayer {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([roomId, userId])
+  @@unique([userId, roomId], name: "userId_roomId")
 }
 
 model Round {
   id          String    @id @default(cuid())
   roundNumber Int
   createdAt   DateTime  @default(now())
+  startedAt   DateTime?
   endedAt     DateTime?
 
   // --- Relations ---
@@ -197,7 +201,7 @@ model Guess {
   userId  String
   round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
   user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([roundId, userId])
 }
 
@@ -208,20 +212,27 @@ model Leaderboard {
   updatedAt   DateTime @updatedAt
 
   // --- Relations ---
-  userId String @unique
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mode       RoomMode
+  difficulty Difficulty
+
+  @@unique([userId, mode, difficulty])
 }
 
 model GameScoreHistory {
   id       Int      @id @default(autoincrement())
   score    Int
   playedAt DateTime @default(now())
+  rank     Int?
 
+  difficulty Difficulty
   // --- Relations ---
-  roomId String
-  userId String
-  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomId     String
+  userId     String
+  room       Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Friend {
@@ -243,17 +254,43 @@ model Friend {
 // -----------------------------------------------------
 
 model Subscription {
-  id                   Int              @id @default(autoincrement())
-  subscriptionPlan     SubscriptionPlan @default(free)
-  stripeSubscriptionId String           @unique
-  status               String // e.g., "active", "canceled"
-  startedAt            DateTime
-  expiresAt            DateTime
-  updatedAt            DateTime         @updatedAt
+  id String @id @default(cuid())
+
+  // --- Stripe Specific Fields (สำคัญมาก) ---
+  stripeSubscriptionId String @unique // ID ของ Subscription ที่ Stripe สร้างให้
+  stripeCustomerId     String @unique // ID ของ Customer ที่ Stripe สร้างให้ user คนนี้
+
+  // --- Subscription Status ---
+  status             String // e.g., "active", "canceled", "past_due" (ตรงกับของ Stripe)
+  currentPeriodStart DateTime // วันที่เริ่มต้นรอบบิลปัจจุบัน
+  currentPeriodEnd   DateTime // วันที่จะหมดอายุ/ตัดเงินรอบถัดไป (สำคัญมาก)
+  canceledAt         DateTime? // วันที่กดยกเลิก
+  endedAt            DateTime? // วันที่หมดอายุจริงๆ หลังยกเลิก
 
   // --- Relations ---
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // เปลี่ยนจาก Enum มาเป็น Relation ที่เชื่อมกับ Tier โดยตรง
+  tierId String
+  tier   SubscriptionTier @relation(fields: [tierId], references: [id])
+}
+
+model SubscriptionTier {
+  id          String               @id @default(cuid())
+  name        SubscriptionTierName @unique // ชื่อของระดับขั้น (free, pro, elite)
+  description String?
+  price       Decimal              @db.Decimal(10, 2) // ราคาต่อรอบบิล
+  isActive    Boolean              @default(true) // เปิด/ปิดการขาย tier นี้
+
+  // --- Stripe Specific Fields ---
+  // ID ของ Price ที่คุณสร้างใน Stripe Dashboard (สำคัญที่สุด)
+  // เช่น price_12345 สำหรับ Pro Plan, price_67890 สำหรับ Elite Plan
+  stripePriceId String @unique
+
+  // --- Relations ---
+  // Tier นี้มีผู้ใช้สมัครอยู่กี่คน
+  subscriptions Subscription[]
 }
 
 model Conversation {

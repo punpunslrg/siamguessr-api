@@ -52,13 +52,16 @@ export const registerUser = async (req, res, next) => {
     });
 
     // สร้าง WinRate record สำหรับ user ใหม่
-    await prisma.winRate.create({
-      data: {
-        userId: newUser.id,
-      },
-    });
+    for (const diff of ["classic", "challenge"]) {
+      await prisma.winRate.create({
+        data: {
+          userId: newUser.id,
+          difficulty: diff,
+        },
+      });
+    }
 
-    res.status(201).json({ message: "User registered successfully." });
+    res.status(201).json({ message: "User registered successfully." ,newUser});
   } catch (error) {
     next(error);
   }
@@ -255,6 +258,26 @@ authController.socialLoginSuccess = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    // ตรวจสอบว่า status ที่ส่งมาถูกต้องตาม enum หรือไม่
+    const validStatuses = ["pending", "active", "banned"];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: id },
+      data: {
+        status,
+      },
+      omit: { password: true },
+    });
+
+    res.json({
+      message: `User ${updatedUser.username} updated successfully.`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    next(error);
     // res.json({user:"user"})
    
     res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
@@ -376,6 +399,7 @@ authController.logout = async (req, res, next) => {
     next(err);
   }
 };
+
 
 export const logout = authController.logout;
 export default authController;

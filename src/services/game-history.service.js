@@ -1,6 +1,6 @@
 import prisma from "../config/prisma.config.js";
 
-export const getSingleplayerHistory = async (userId) => {
+export const getSingleplayerHistoryForUser = async (userId) => {
   const history = await prisma.gameScoreHistory.findMany({
     where: {
       userId: userId,
@@ -23,24 +23,29 @@ export const getSingleplayerHistory = async (userId) => {
   return history;
 };
 
-export const getMultiplayerHistory = async (userId) => {
+export const getMultiplayerHistoryForUser = async (userId) => {
   const history = await prisma.gameScoreHistory.findMany({
     where: {
       userId: userId,
-      room: {
-        mode: "multi", // กรองเฉพาะห้องที่มีโหมด 'multi'
-      },
+      room: { mode: "multi" },
     },
-    include: {
-      // ดึงข้อมูลห้องที่เกี่ยวข้องมาด้วย เพื่อแสดงชื่อ Map หรือ Difficulty
+    select: {
+      score: true,
+      rank: true, // ✅ เอา rank มาด้วย
+      playedAt: true,
       room: {
         select: {
           difficulty: true,
         },
       },
+      user: {
+        select: {
+          winRate: true,
+        },
+      },
     },
     orderBy: {
-      playedAt: "desc", // เรียงจากล่าสุดไปเก่าสุด
+      playedAt: "desc",
     },
   });
   return history;

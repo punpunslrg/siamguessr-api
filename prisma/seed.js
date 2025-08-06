@@ -1,4 +1,4 @@
-import prisma from "../src/config/prisma.config.js";
+import prisma, { SubscriptionTierName } from "../src/config/prisma.config.js";
 
 // The location data you provided
 const locationsData = [
@@ -27,18 +27,82 @@ const locationsData = [
     lat: 7.8286,
     lng: 98.3121,
   },
+  {
+    description: "Ban Rak Thai Village, Mae Hong Son",
+    lat: 19.5113,
+    lng: 97.9224,
+  },
+  {
+    description: "Phu Ruea Viewpoint, Loei",
+    lat: 17.4551,
+    lng: 101.3511,
+  },
+  {
+    description: "Tha Chalom Old Town, Samut Sakhon",
+    lat: 13.5376,
+    lng: 100.2732,
+  },
+  {
+    description: "Yasothon City Pillar Shrine",
+    lat: 15.7937,
+    lng: 104.1448,
+  },
+  {
+    description: "Uthai Thani Riverside Market",
+    lat: 15.3855,
+    lng: 100.0252,
+  },
+  {
+    description: "Tha Sadet Market, Nakhon Phanom",
+    lat: 17.4108,
+    lng: 104.7787,
+  },
+  {
+    description: "Ban Laem District, Phetchaburi",
+    lat: 13.0972,
+    lng: 99.9567,
+  },
+  {
+    description: "Sangkhla Buri Local Area, Kanchanaburi",
+    lat: 15.1461,
+    lng: 98.4574,
+  },
+  {
+    description: "Pak Chong Railway Station, Nakhon Ratchasima",
+    lat: 14.7054,
+    lng: 101.4158,
+  },
+  {
+    description: "Downtown Trang (Clock Tower Circle)",
+    lat: 7.5576,
+    lng: 99.6116,
+  },
+  {
+    description: "Ban Pong Market Road, Ratchaburi",
+    lat: 13.8195,
+    lng: 99.8782,
+  },
+  {
+    description: "Downtown Phitsanulok near Railway Station",
+    lat: 16.8211,
+    lng: 100.2636,
+  },
+  {
+    description: "Lamphun Old Town Main Road",
+    lat: 18.5749,
+    lng: 99.0086,
+  },
 ];
-
 
 async function main() {
   console.log(`Start seeding ...`);
 
   // Format the data to match the Prisma schema
-  const formattedLocations = locationsData.map(location => ({
+  const formattedLocations = locationsData.map((location) => ({
     lat: location.lat,
     lng: location.lng,
     description: location.description,
-    countryCode: 'TH', 
+    countryCode: "TH",
     isVerified: true,
   }));
 
@@ -49,6 +113,21 @@ async function main() {
   });
 
   console.log(`Seeding finished. Added ${result.count} locations.`);
+
+  console.log("Seeding subscription tiers...");
+  // ใช้ .upsert เพื่อป้องกันการสร้างข้อมูลซ้ำ
+  // มันจะหาด้วย stripePriceId, ถ้าเจอจะไม่อัปเดต, ถ้าไม่เจอจะสร้างใหม่
+  const basicTier = await prisma.subscriptionTier.upsert({
+    where: { stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N" }, // <-- Price ID ของ Basic Plan
+    update: {}, // ไม่ต้องทำอะไรถ้าเจอ
+    create: {
+      name: SubscriptionTierName.basic, // ใช้ Enum ที่ import มา
+      price: 119.0,
+      stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N",
+      description: "Basic Monthly Plan",
+    },
+  });
+  console.log(`Upserted 'basic' tier:`, basicTier);
 }
 
 main()

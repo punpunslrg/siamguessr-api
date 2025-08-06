@@ -1,5 +1,5 @@
-import express, { Router } from "express";
 import passport from 'passport';
+import express from "express";
 
 import { loginSchema,registerSchema, schemaVerifyOtp, validate } from "../validations/validator.js";
 import authController, { registerUser,loginUser } from "../controllers/auth.controller.js";

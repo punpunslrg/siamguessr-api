@@ -12,12 +12,12 @@ export const authCheck = (req, res, next) => {
 
     //2. Split token
     const token = header.split(" ")[1];
-    console.log(token);
+    // console.log(token);
 
     //3. Verify Token
     jwt.verify(token, process.env.JWT_SECRET, (error, decode) => {
       // console.log(error)
-      console.log("Decoded token:", decode);
+      // console.log("Decoded token:", decode);
       if (error) {
         createError(401, "Token is Invalid!!!");
       }
