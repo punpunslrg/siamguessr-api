@@ -224,6 +224,34 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
+export const updateUserByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // ตรวจสอบว่า status ที่ส่งมาถูกต้องตาม enum หรือไม่
+    const validStatuses = ["pending", "active", "banned"];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status value." });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: id },
+      data: {
+        status,
+      },
+      omit: { password: true },
+    });
+
+    res.json({
+      message: `User ${updatedUser.username} updated successfully.`,
+      user: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 
@@ -258,26 +286,6 @@ authController.socialLoginSuccess = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    // ตรวจสอบว่า status ที่ส่งมาถูกต้องตาม enum หรือไม่
-    const validStatuses = ["pending", "active", "banned"];
-    if (status && !validStatuses.includes(status)) {
-      return res.status(400).json({ message: "Invalid status value." });
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: id },
-      data: {
-        status,
-      },
-      omit: { password: true },
-    });
-
-    res.json({
-      message: `User ${updatedUser.username} updated successfully.`,
-      user: updatedUser,
-    });
-  } catch (error) {
-    next(error);
     // res.json({user:"user"})
    
     res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
