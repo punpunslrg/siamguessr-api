@@ -28,14 +28,16 @@ authService.createAccount = async (data) => {
   const user = await prisma.user.create({ data });
   
   // สร้าง WinRate record สำหรับ user ใหม่
-  await prisma.winRate.create({
-    data: {
-      userId: user.id,
-    },
-  });
-  
+for (const diff of ["classic", "challenge"]) {
+    await prisma.winRate.create({
+      data: {
+        userId: newUser.id,
+        difficulty: diff,
+      },
+    });
+  }
   return user;
-}
+};
 
 
 authService.storeRefreshToken = (userId, token) => {
