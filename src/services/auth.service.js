@@ -1,42 +1,43 @@
-import prisma from "../config/prisma.config.js"
-import emailService from "./email.service.js"
-import hashService from "./hash.service.js"
-import createError from "../utils/create-error.util.js"
-import crypto from 'crypto'
+import prisma from "../config/prisma.config.js";
+import emailService from "./email.service.js";
+import hashService from "./hash.service.js";
+import createError from "../utils/create-error.util.js";
+import crypto from "crypto";
 
-const authService = {}
+const authService = {};
 
 authService.findUserByEmail = (email) => {
   return prisma.user.findUnique({
     where: { email },
   });
-}
+};
 
 authService.findAccountByEmail = (email) => {
   return prisma.user.findUnique({
     where: { email },
   });
-}
+};
 
 authService.findUserById = (id) => {
   return prisma.user.findUnique({
     where: { id },
-  })
-}
+  });
+};
 
 authService.createAccount = async (data) => {
   const user = await prisma.user.create({ data });
-  
-  // สร้าง WinRate record สำหรับ user ใหม่
-  await prisma.winRate.create({
-    data: {
-      userId: user.id,
-    },
-  });
-  
-  return user;
-}
 
+  // สร้าง WinRate record สำหรับ user ใหม่
+  for (const diff of ["classic", "challenge"]) {
+    await prisma.winRate.create({
+      data: {
+        userId: user.id,
+        difficulty: diff,
+      },
+    });
+  }
+  return user;
+};
 
 authService.storeRefreshToken = (userId, token) => {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 วัน
@@ -51,8 +52,8 @@ authService.updateLastLogin = (userId) => {
   return prisma.user.update({
     where: { id: userId },
     data: { lastLogin: new Date() },
-  })
-}
+  });
+};
 
 authService.requestPasswordReset = async (email) => {
   const account = await prisma.user.findUnique({ where: { email } });
@@ -66,34 +67,44 @@ authService.requestPasswordReset = async (email) => {
     where: { email },
     data: {
       passwordResetToken: hashedOtp,
-      passwordResetExpires: otpExpires
-    }
+      passwordResetExpires: otpExpires,
+    },
   });
 
   try {
     await emailService.sendOtpEmail(user.email, otp);
   } catch (error) {
-    console.error('Email sending failed:', error);
+    console.error("Email sending failed:", error);
     throw createError(500, "Could not send OTP email.");
   }
 };
 
 authService.verifyOtp = async (email, otp) => {
   const account = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
   });
 
-  if (!account || !user.passwordResetToken || user.passwordResetExpires < new Date()) {
+  if (
+    !account ||
+    !user.passwordResetToken ||
+    user.passwordResetExpires < new Date()
+  ) {
     throw createError(400, "OTP is invalid or has expired.");
   }
 
-  const isMatch = await hashService.comparePassword(otp, user.passwordResetToken);
+  const isMatch = await hashService.comparePassword(
+    otp,
+    user.passwordResetToken
+  );
   if (!isMatch) {
     throw createError(400, "Invalid OTP provided.");
   }
 
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const hashedResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const hashedResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
   const resetTokenExpires = new Date(Date.now() + 5 * 60 * 1000);
 
   await prisma.user.update({
@@ -101,20 +112,20 @@ authService.verifyOtp = async (email, otp) => {
     data: {
       passwordResetToken: hashedResetToken,
       passwordResetExpires: resetTokenExpires,
-    }
+    },
   });
 
   return resetToken;
 };
 
 authService.resetPasswordWithToken = async (token, newPassword) => {
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const account = await prisma.user.findFirst({
     where: {
       passwordResetToken: hashedToken,
-      passwordResetExpires: { gte: new Date() }
-    }
+      passwordResetExpires: { gte: new Date() },
+    },
   });
 
   if (!account) {
@@ -128,11 +139,10 @@ authService.resetPasswordWithToken = async (token, newPassword) => {
     data: {
       password: hashedNewPassword,
       passwordResetToken: null,
-      passwordResetExpires: null
-    }
+      passwordResetExpires: null,
+    },
   });
 };
-
 
 authService.linkGoogleToAccount = (id, googleId) => {
   return prisma.user.update({
@@ -164,7 +174,9 @@ authService.deactivateAccountByFacebookId = async (facebookId) => {
   });
 
   if (!account) {
-    console.warn(`Deactivation request for non-existent facebookId: ${facebookId}`);
+    console.warn(
+      `Deactivation request for non-existent facebookId: ${facebookId}`
+    );
     return;
   }
 
@@ -175,4 +187,3 @@ authService.deactivateAccountByFacebookId = async (facebookId) => {
 };
 
 export default authService;
-
