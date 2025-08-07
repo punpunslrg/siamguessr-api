@@ -92,7 +92,7 @@ model User {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
-// --- Relations ---
+  // --- Relations ---
 
 hostedRooms              Room[]                    @relation("Host")
 roomPlayers              RoomPlayer[]
@@ -109,7 +109,7 @@ messages                 Message[]
 winRate WinRate[]
 }
 
- model RefreshToken {
+model RefreshToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
   userId    String   @unique
@@ -124,18 +124,19 @@ winRate WinRate[]
 
 // --- ADD THIS NEW MODEL ---
 model WinRate {
-  id            String      @id @default(cuid())
+  id            String     @id @default(cuid())
   difficulty    Difficulty
-  wins          Int         @default(0)
-  losses        Int         @default(0)
-  draws         Int         @default(0)
-  gamesPlayed   Int         @default(0)
-  winPercentage Float       @default(0.0)
-  lastUpdated   DateTime    @updatedAt
+  wins          Int        @default(0)
+  losses        Int        @default(0)
+  draws         Int        @default(0)
+  gamesPlayed   Int        @default(0)
+  winPercentage Float      @default(0.0)
+  lastUpdated   DateTime   @updatedAt
 
   // --- Relations ---
-  userId String 
+  userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, difficulty])
 }
 
@@ -212,9 +213,8 @@ model Leaderboard {
   updatedAt   DateTime @updatedAt
 
   // --- Relations ---
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   mode       RoomMode
   difficulty Difficulty
 
@@ -340,5 +340,3 @@ model CuratedLocation {
   // This shows which rounds have used this location
   rounds Round[]
 }
-
-

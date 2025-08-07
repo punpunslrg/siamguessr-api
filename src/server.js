@@ -78,9 +78,9 @@ const csrfProtection = csrf({
 // ปิด CSRF protection ชั่วคราว
 // app.use(csrfProtection);
 
-app.get('/csrf-token', (req, res) => {
-    res.json({ csrfToken: req.csrfToken() });
-});
+// app.get('/csrf-token', (req, res) => {
+//     res.json({ csrfToken: req.csrfToken() });
+// });
 
 
 app.use(express.json());
