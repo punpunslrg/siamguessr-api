@@ -118,12 +118,12 @@ async function main() {
   // ใช้ .upsert เพื่อป้องกันการสร้างข้อมูลซ้ำ
   // มันจะหาด้วย stripePriceId, ถ้าเจอจะไม่อัปเดต, ถ้าไม่เจอจะสร้างใหม่
   const basicTier = await prisma.subscriptionTier.upsert({
-    where: { stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N" }, // <-- Price ID ของ Basic Plan
+    where: { stripePriceId: "price_1RtPmYJvFVWyYIUhMzVZ00NY" }, // <-- Price ID ของ Basic Plan
     update: {}, // ไม่ต้องทำอะไรถ้าเจอ
     create: {
       name: SubscriptionTierName.basic, // ใช้ Enum ที่ import มา
       price: 119.0,
-      stripePriceId: "price_1RrDvkGrzg3Hq6W5zImzX34N",
+      stripePriceId: "price_1RtPmYJvFVWyYIUhMzVZ00NY",
       description: "Basic Monthly Plan",
     },
   });

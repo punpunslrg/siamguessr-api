@@ -48,7 +48,8 @@ passport.use(new GoogleStrategy({
         const googleId = profile.id;
         const firstName = profile.name.givenName;
         const lastName = profile.name.familyName;
-
+        const image = profile.photos[0].value
+            console.log('profile', profile)
         let user = await authService.findUserByEmail(email);
 
         if (user) {
@@ -69,7 +70,8 @@ passport.use(new GoogleStrategy({
                 password: hashedPassword,
                 googleId: googleId,
                 role: 'user',
-                status: 'active'
+                status: 'active',
+                image
             });
 
            
@@ -89,7 +91,7 @@ passport.use(new FacebookStrategy({
     clientID: process.env.FACEBOOK_APP_ID,
     clientSecret: process.env.FACEBOOK_APP_SECRET,
     callbackURL: "/api/auth/facebook/callback",
-    profileFields: ['id', 'emails', 'name'] 
+    profileFields: ['id', 'emails', 'name','picture'] 
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -97,7 +99,9 @@ passport.use(new FacebookStrategy({
         const facebookId = profile.id;
         const firstName = profile.name.givenName;
         const lastName = profile.name.familyName;
+        const image = profile.photos?.[0]?.value;
 
+console.log('profile', profile)
         if (!email) {
             return done(createError(400, "Could not retrieve email from Facebook."), false);
         }
@@ -121,7 +125,8 @@ passport.use(new FacebookStrategy({
                 password: hashedPassword,
                 facebookId: facebookId,
                 role: 'user',
-                status: 'active'
+                status: 'active',
+                image
             });
         }
         

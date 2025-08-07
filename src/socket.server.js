@@ -9,13 +9,14 @@ const disconnectTimers = new Map();
 export default function socketServer(io) {
   io.use((socket, next) => {
     const token = socket.handshake.auth.token;
+    console.log(token)
     if (!token) {
       next(new Error("Error ja mom"));
       return;
     }
-    const payload = jwt.verify(token, process.env.SECRET);
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     socket.user = payload;
-    // console.log("payload", payload);
+    console.log("payload", payload);
     next();
   });
 
