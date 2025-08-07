@@ -31,7 +31,7 @@ authService.createAccount = async (data) => {
 for (const diff of ["classic", "challenge"]) {
     await prisma.winRate.create({
       data: {
-        userId: newUser.id,
+        userId: user.id,
         difficulty: diff,
       },
     });

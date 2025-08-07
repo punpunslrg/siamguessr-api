@@ -97,7 +97,7 @@ model User {
 hostedRooms              Room[]                    @relation("Host")
 roomPlayers              RoomPlayer[]
 guesses                  Guess[]
-leaderboard              Leaderboard?
+leaderboard              Leaderboard[]
 gameScoreHistory         GameScoreHistory[]
 sentFriendRequests       Friend[]                  @relation("SentRequests")
 receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
@@ -106,7 +106,7 @@ conversationParticipants ConversationParticipant[]
 messages                 Message[]
 
 // --- ADD THIS RELATION ---
-winRate WinRate?
+winRate WinRate[]
 }
 
  model RefreshToken {
