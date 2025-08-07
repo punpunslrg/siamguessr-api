@@ -75,16 +75,8 @@ const csrfProtection = csrf({
   ignoreMethods: ['GET', 'HEAD', 'OPTIONS']
 });
 
-// ใช้ CSRF แต่ยกเว้น OAuth routes และ register/login
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api/auth/google') || 
-      req.path.startsWith('/api/auth/facebook') ||
-      req.path === '/api/auth/register' ||
-      req.path === '/api/auth/login') {
-    return next();
-  }
-  csrfProtection(req, res, next);
-});
+// ปิด CSRF protection ชั่วคราว
+// app.use(csrfProtection);
 
 app.get('/csrf-token', (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
