@@ -94,19 +94,19 @@ model User {
 
   // --- Relations ---
 
-  hostedRooms              Room[]                    @relation("Host")
-  roomPlayers              RoomPlayer[]
-  guesses                  Guess[]
-  leaderboard              Leaderboard[]
-  gameScoreHistory         GameScoreHistory[]
-  sentFriendRequests       Friend[]                  @relation("SentRequests")
-  receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
-  subscription             Subscription?
-  conversationParticipants ConversationParticipant[]
-  messages                 Message[]
+hostedRooms              Room[]                    @relation("Host")
+roomPlayers              RoomPlayer[]
+guesses                  Guess[]
+leaderboard              Leaderboard[]
+gameScoreHistory         GameScoreHistory[]
+sentFriendRequests       Friend[]                  @relation("SentRequests")
+receivedFriendRequests   Friend[]                  @relation("ReceivedRequests")
+subscription             Subscription?
+conversationParticipants ConversationParticipant[]
+messages                 Message[]
 
-  // --- ADD THIS RELATION ---
-  winRate WinRate[]
+// --- ADD THIS RELATION ---
+winRate WinRate[]
 }
 
 model RefreshToken {
