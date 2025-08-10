@@ -53,7 +53,6 @@ passport.use(new GoogleStrategy({
         let user = await authService.findUserByEmail(email);
 
         if (user) {
-           
             if (!user.googleId) {
                 user = await authService.linkGoogleToAccount(user.id, googleId);
             }

@@ -13,6 +13,7 @@ export const getSingleplayerHistory = async (req, res, next) => {
 export const getMultiplayerHistory = async (req, res, next) => {
   try {
     const userId = req.user.id;
+    console.log('userId', userId)
     const history = await gameHistoryService.getMultiplayerHistoryForUser(userId);
     res.json({ history });
   } catch (error) {

@@ -20,7 +20,10 @@ export const authCheck = (req, res, next) => {
       // console.log(error)
       // console.log("Decoded token:", decode);
       if (error) {
-        createError(401, "Token is Invalid!!!");
+        if (error.name === "TokenExpiredError") {
+          return next(createError(401, "Access token expired"));
+        }
+        return next(createError(401, "Access token is invalid"));
       }
 
       req.user = decode;

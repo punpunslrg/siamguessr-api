@@ -1,7 +1,12 @@
 import express from "express";
 import { adminCheck, authCheck } from "../middlewares/auth.middleware.js";
-import { deleteUser, getMe, listUser, updateUser } from "../controllers/auth.controller.js";
-import upload from "../middlewares/upload.middleware.js"
+import {
+  deleteUser,
+  getMe,
+  listUser,
+  updateUser,
+} from "../controllers/auth.controller.js";
+import upload from "../middlewares/upload.middleware.js";
 
 const userRoute = express.Router();
 
@@ -12,15 +17,13 @@ userRoute.post("/me", (req, res, next) => {
   res.status(200).json({ mesaage: "put me path" });
 });
 
-userRoute.get('/',authCheck,listUser);
+userRoute.get("/", authCheck, listUser);
 
-userRoute.get("/getme",authCheck,getMe)
+userRoute.get("/getme", authCheck, getMe);
+// userRoute.get("/getme")
 
-userRoute.patch('/update',authCheck, upload.single("image"), updateUser)
+userRoute.patch("/update", authCheck, upload.single("image"), updateUser);
 
-
-userRoute.delete("/:id",authCheck, adminCheck, deleteUser)
-
-
+userRoute.delete("/:id", authCheck, adminCheck, deleteUser);
 
 export default userRoute;
