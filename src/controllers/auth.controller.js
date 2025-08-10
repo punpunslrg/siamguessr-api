@@ -91,8 +91,8 @@ export const loginUser = async (req, res, next) => {
      throw createError(400, "Invalid email or password.");
     }
 
-    const accessToken = await jwtService.genAccessToken({ id: user.id, role: user.role });
-    const refreshToken = await jwtService.genRefreshToken(user.id);
+    const accessToken = jwtService.genAccessToken({ id: user.id, role: user.role });
+    const refreshToken = jwtService.genRefreshToken(user.id);
 
     await prisma.refreshToken.upsert({
       where: { userId: user.id },
@@ -261,9 +261,8 @@ authController.socialLoginSuccess = async (req, res, next) => {
     const user = req.user;
 
     
-    const accessToken = await jwtService.genAccessToken({ id: user.id, role: user.role });
-    const refreshToken = await jwtService.genRefreshToken(user.id);
-
+    const accessToken = jwtService.genAccessToken({ id: user.id, role: user.role });
+    const refreshToken = jwtService.genRefreshToken(user.id);
 
     await prisma.refreshToken.upsert({
       where: { userId: user.id },
@@ -287,8 +286,10 @@ authController.socialLoginSuccess = async (req, res, next) => {
     });
 
     // res.json({user:"user"})
-   
+    const redi = `${process.env.FRONTEND_URL}?token=${accessToken}`
+    console.log('redi', redi)
     res.redirect(`${process.env.FRONTEND_URL}?token=${accessToken}`);
+    // res.redirect(`${process.env.FRONTEND_URL}`);
   } catch (err) {
     
     const errorMessage = encodeURIComponent(err.message || 'An unknown error occurred during social login.');
@@ -377,7 +378,7 @@ authController.refresh = async (req, res, next) => {
     const userId = oldRefresh.userId;
     console.log('userId', userId)
 
-    const newAccessToken = await jwtService.genAccessToken({ id: userId });
+    const newAccessToken = jwtService.genAccessToken({ id: userId });
     console.log('newAccessToken', newAccessToken)
 
     res.status(200).json({
